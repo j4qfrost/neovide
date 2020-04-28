@@ -40,9 +40,7 @@ jobs:
 
     - name: Set LLVM Path
       run: |
-        export PATH="/usr/local/opt/llvm/bin:$PATH"
-        export CPPFLAGS="-I/usr/local/opt/llvm/include"
-        export LDFLAGS="-L/usr/local/opt/llvm/lib"
+        brew uninstall llvm
 
     - name: Test
       run: |
