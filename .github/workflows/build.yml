@@ -14,9 +14,13 @@ jobs:
       run: |
         cargo fmt --all -- --check
 
-    - name: Build
+    - name: Test
       run: |
+        choco install -y neovim
         RUST_BACKTRACE=full cargo test
+
+    - name: Build Release
+      run: |
         cargo build --release
 
     - uses: actions/upload-artifact@v1
@@ -104,7 +108,7 @@ jobs:
     - name: Generate Coverage Report
       run: |
         cargo install cargo-tarpaulin
-        cargo tarpaulin --out Xml  --ignore-tests
+        cargo tarpaulin --out Xml --ignore-tests
         bash <(curl -s https://codecov.io/bash)
 
     - uses: actions/upload-artifact@v1
