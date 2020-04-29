@@ -16,7 +16,7 @@ jobs:
 
     - name: Test
       run: |
-        choco install -y neovim > nul
+        choco install -y neovim >nul 2>nul
         RUST_BACKTRACE=full cargo test
 
     - name: Build Release
