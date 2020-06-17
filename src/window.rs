@@ -7,6 +7,7 @@ use skulpin::sdl2;
 use skulpin::sdl2::event::{Event, WindowEvent};
 use skulpin::sdl2::keyboard::Keycode;
 use skulpin::sdl2::video::FullscreenType;
+use skulpin::sdl2::EventPump;
 use skulpin::sdl2::Sdl;
 use skulpin::{
     CoordinateSystem, LogicalSize, PhysicalSize, PresentMode, Renderer as SkulpinRenderer,
@@ -58,6 +59,7 @@ struct WindowWrapper {
     fullscreen: bool,
     cached_size: (u32, u32),
     cached_position: (i32, i32),
+    vimming: bool,
 }
 
 pub fn window_geometry() -> Result<(u64, u64), String> {
@@ -173,6 +175,7 @@ impl WindowWrapper {
             fullscreen: false,
             cached_size: (0, 0),
             cached_position: (0, 0),
+            vimming: true,
         }
     }
 
@@ -254,11 +257,11 @@ impl WindowWrapper {
         }
     }
 
-    pub fn handle_quit(&mut self) {
+    fn handle_quit(&mut self) {
         BRIDGE.queue_command(UiCommand::Quit);
     }
 
-    pub fn handle_keyboard_input(&mut self, keycode: Option<Keycode>, text: Option<String>) {
+    fn handle_keyboard_input(&mut self, keycode: Option<Keycode>, text: Option<String>) {
         let modifiers = self.context.keyboard().mod_state();
 
         if keycode.is_some() || text.is_some() {
@@ -276,7 +279,7 @@ impl WindowWrapper {
         }
     }
 
-    pub fn handle_pointer_motion(&mut self, x: i32, y: i32) {
+    fn handle_pointer_motion(&mut self, x: i32, y: i32) {
         let previous_position = self.mouse_position;
         let physical_size = PhysicalSize::new(
             (x as f32 / self.renderer.font_width) as u32,
@@ -293,7 +296,7 @@ impl WindowWrapper {
         }
     }
 
-    pub fn handle_pointer_down(&mut self) {
+    fn handle_pointer_down(&mut self) {
         BRIDGE.queue_command(UiCommand::MouseButton {
             action: String::from("press"),
             position: (self.mouse_position.width, self.mouse_position.height),
@@ -301,7 +304,7 @@ impl WindowWrapper {
         self.mouse_down = true;
     }
 
-    pub fn handle_pointer_up(&mut self) {
+    fn handle_pointer_up(&mut self) {
         BRIDGE.queue_command(UiCommand::MouseButton {
             action: String::from("release"),
             position: (self.mouse_position.width, self.mouse_position.height),
@@ -309,7 +312,7 @@ impl WindowWrapper {
         self.mouse_down = false;
     }
 
-    pub fn handle_mouse_wheel(&mut self, x: i32, y: i32) {
+    fn handle_mouse_wheel(&mut self, x: i32, y: i32) {
         let vertical_input_type = match y {
             _ if y > 0 => Some("up"),
             _ if y < 0 => Some("down"),
@@ -337,13 +340,56 @@ impl WindowWrapper {
         }
     }
 
-    pub fn handle_focus_lost(&mut self) {
+    fn handle_focus_lost(&mut self) {
         BRIDGE.queue_command(UiCommand::FocusLost);
     }
 
-    pub fn handle_focus_gained(&mut self) {
+    fn handle_focus_gained(&mut self) {
         BRIDGE.queue_command(UiCommand::FocusGained);
         REDRAW_SCHEDULER.queue_next_frame();
+    }
+
+    pub fn process_editor_events(&mut self, event_pump: &mut EventPump) {
+        let mut keycode = None;
+        let mut keytext = None;
+        let mut ignore_text_this_frame = false;
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => self.handle_quit(),
+                Event::DropFile { filename, .. } => {
+                    BRIDGE.queue_command(UiCommand::FileDrop(filename));
+                }
+                Event::KeyDown {
+                    keycode: received_keycode,
+                    ..
+                } => {
+                    keycode = received_keycode;
+                }
+                Event::TextInput { text, .. } => keytext = Some(text),
+                Event::MouseMotion { x, y, .. } => self.handle_pointer_motion(x, y),
+                Event::MouseButtonDown { .. } => self.handle_pointer_down(),
+                Event::MouseButtonUp { .. } => self.handle_pointer_up(),
+                Event::MouseWheel { x, y, .. } => self.handle_mouse_wheel(x, y),
+                Event::Window {
+                    win_event: WindowEvent::FocusLost,
+                    ..
+                } => self.handle_focus_lost(),
+                Event::Window {
+                    win_event: WindowEvent::FocusGained,
+                    ..
+                } => {
+                    ignore_text_this_frame = true; // Ignore any text events on the first frame when focus is regained. https://github.com/Kethku/neovide/issues/193
+                    self.handle_focus_gained();
+                }
+                Event::Window { .. } => REDRAW_SCHEDULER.queue_next_frame(),
+                _ => {}
+            }
+        }
+
+        if !ignore_text_this_frame {
+            self.handle_keyboard_input(keycode, keytext);
+        }
     }
 
     pub fn draw_frame(&mut self) -> bool {
@@ -424,49 +470,12 @@ pub fn ui_loop() {
 
         window.synchronize_settings();
 
-        let mut keycode = None;
-        let mut keytext = None;
-        let mut ignore_text_this_frame = false;
+        if window.vimming {
+            window.process_editor_events(&mut event_pump);
 
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } => window.handle_quit(),
-                Event::DropFile { filename, .. } => {
-                    BRIDGE.queue_command(UiCommand::FileDrop(filename));
-                }
-                Event::KeyDown {
-                    keycode: received_keycode,
-                    ..
-                } => {
-                    keycode = received_keycode;
-                }
-                Event::TextInput { text, .. } => keytext = Some(text),
-                Event::MouseMotion { x, y, .. } => window.handle_pointer_motion(x, y),
-                Event::MouseButtonDown { .. } => window.handle_pointer_down(),
-                Event::MouseButtonUp { .. } => window.handle_pointer_up(),
-                Event::MouseWheel { x, y, .. } => window.handle_mouse_wheel(x, y),
-                Event::Window {
-                    win_event: WindowEvent::FocusLost,
-                    ..
-                } => window.handle_focus_lost(),
-                Event::Window {
-                    win_event: WindowEvent::FocusGained,
-                    ..
-                } => {
-                    ignore_text_this_frame = true; // Ignore any text events on the first frame when focus is regained. https://github.com/Kethku/neovide/issues/193
-                    window.handle_focus_gained();
-                }
-                Event::Window { .. } => REDRAW_SCHEDULER.queue_next_frame(),
-                _ => {}
+            if !window.draw_frame() {
+                break;
             }
-        }
-
-        if !ignore_text_this_frame {
-            window.handle_keyboard_input(keycode, keytext);
-        }
-
-        if !window.draw_frame() {
-            break;
         }
 
         let elapsed = frame_start.elapsed();
