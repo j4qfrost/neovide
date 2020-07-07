@@ -16,7 +16,7 @@ use crate::editor::{Style, EDITOR};
 use cursor_renderer::CursorRenderer;
 
 pub struct Renderer {
-    surface: Option<Surface>,
+    pub surface: Option<Surface>,
     paint: Paint,
     shaper: CachingShaper,
 
@@ -147,6 +147,41 @@ impl Renderer {
         }
 
         canvas.restore();
+    }
+
+    pub fn draw_snake(
+        &mut self,
+        gpu_canvas: &mut Canvas,
+        coordinate_system_helper: &CoordinateSystemHelper,
+        dt: f32,
+    ) {
+        let mut context = gpu_canvas.gpu_context().unwrap();
+        let budgeted = Budgeted::YES;
+        let image_info = gpu_canvas.image_info();
+        let surface_origin = SurfaceOrigin::TopLeft;
+        let mut surface = Surface::new_render_target(
+            &mut context,
+            budgeted,
+            &image_info,
+            None,
+            surface_origin,
+            None,
+            None,
+        )
+        .expect("Could not create surface");
+        let canvas = surface.canvas();
+        canvas.clear(colors::BLACK.to_color());
+        let window_size = coordinate_system_helper.window_logical_size();
+        let image_destination = Rect::new(
+            0.0,
+            0.0,
+            window_size.width as f32,
+            window_size.height as f32,
+        );
+
+        let image = surface.image_snapshot();
+        gpu_canvas.draw_image_rect(image, None, &image_destination, &self.paint);
+        self.surface = Some(surface);
     }
 
     pub fn draw(

@@ -11,8 +11,9 @@ use skulpin::sdl2::EventPump;
 use skulpin::sdl2::Sdl;
 use skulpin::{
     CoordinateSystem, LogicalSize, PhysicalSize, PresentMode, Renderer as SkulpinRenderer,
-    RendererBuilder, Sdl2Window, Window,
+    RendererBuilder, Sdl2Window, Window, 
 };
+use skulpin::skia_safe::Surface;
 
 use crate::bridge::{produce_neovim_keybinding_string, UiCommand, BRIDGE};
 use crate::editor::EDITOR;
@@ -60,6 +61,7 @@ struct WindowWrapper {
     cached_size: (u32, u32),
     cached_position: (i32, i32),
     vimming: bool,
+    snapshot: Option<Surface>,
 }
 
 pub fn window_geometry() -> Result<(u64, u64), String> {
@@ -176,6 +178,7 @@ impl WindowWrapper {
             cached_size: (0, 0),
             cached_position: (0, 0),
             vimming: true,
+            snapshot: None,
         }
     }
 
@@ -367,6 +370,8 @@ impl WindowWrapper {
                     keycode = received_keycode;
                     if keycode == Some(Keycode::RGui) {
                         self.vimming = false;
+                        self.snapshot = self.renderer.surface.clone();
+                        self.renderer.surface = None;
                     }
                 }
                 Event::TextInput { text, .. } => keytext = Some(text),
@@ -395,6 +400,37 @@ impl WindowWrapper {
         }
     }
 
+    pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => self.handle_quit(),
+                Event::KeyDown {
+                    keycode: received_keycode,
+                    ..
+                } => {
+                    if received_keycode == Some(Keycode::RGui) {
+                        self.vimming = true;
+                        self.renderer.surface = self.snapshot.clone();
+                        self.snapshot = None;
+                        REDRAW_SCHEDULER.queue_next_frame();
+                    }
+                }
+                Event::Window {
+                    win_event: WindowEvent::FocusLost,
+                    ..
+                } => self.handle_focus_lost(),
+                Event::Window {
+                    win_event: WindowEvent::FocusGained,
+                    ..
+                } => {
+                    self.handle_focus_gained();
+                }
+                Event::Window { .. } => REDRAW_SCHEDULER.queue_next_frame(),
+                _ => {}
+            }
+        }
+    }
+
     pub fn draw_frame(&mut self) -> bool {
         if !BRIDGE.running.load(Ordering::Relaxed) {
             return false;
@@ -411,15 +447,20 @@ impl WindowWrapper {
 
         let current_size = self.previous_size;
 
-        if REDRAW_SCHEDULER.should_draw() || SETTINGS.get::<WindowSettings>().no_idle {
+        if REDRAW_SCHEDULER.should_draw() || SETTINGS.get::<WindowSettings>().no_idle || !self.vimming {
             let renderer = &mut self.renderer;
+            let vimming = self.vimming;
             let error = self
                 .skulpin_renderer
                 .draw(&sdl_window_wrapper, |canvas, coordinate_system_helper| {
                     let dt = 1.0 / (SETTINGS.get::<WindowSettings>().refresh_rate as f32);
 
-                    if renderer.draw(canvas, &coordinate_system_helper, dt) {
-                        handle_new_grid_size(current_size, &renderer)
+                    if vimming {
+                        if renderer.draw(canvas, &coordinate_system_helper, dt) {
+                            handle_new_grid_size(current_size, &renderer)
+                        }
+                    } else {
+                        renderer.draw_snake(canvas, &coordinate_system_helper, dt);
                     }
                 })
                 .is_err();
@@ -475,10 +516,12 @@ pub fn ui_loop() {
 
         if window.vimming {
             window.process_editor_events(&mut event_pump);
+        } else {
+            window.process_snake_events(&mut event_pump);
+        }
 
-            if !window.draw_frame() {
-                break;
-            }
+        if !window.draw_frame() {
+            break;
         }
 
         let elapsed = frame_start.elapsed();
