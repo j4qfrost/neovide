@@ -365,6 +365,9 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
+                    if keycode == Some(Keycode::RGui) {
+                        self.vimming = false;
+                    }
                 }
                 Event::TextInput { text, .. } => keytext = Some(text),
                 Event::MouseMotion { x, y, .. } => self.handle_pointer_motion(x, y),
