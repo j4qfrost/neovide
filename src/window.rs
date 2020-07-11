@@ -9,11 +9,11 @@ use skulpin::sdl2::keyboard::Keycode;
 use skulpin::sdl2::video::FullscreenType;
 use skulpin::sdl2::EventPump;
 use skulpin::sdl2::Sdl;
+use skulpin::skia_safe::{Surface, Canvas, colors, Paint, Rect};
 use skulpin::{
-    CoordinateSystem, LogicalSize, PhysicalSize, PresentMode, Renderer as SkulpinRenderer,
-    RendererBuilder, Sdl2Window, Window, 
+    CoordinateSystem, CoordinateSystemHelper, LogicalSize, PhysicalSize, PresentMode, Renderer as SkulpinRenderer,
+    RendererBuilder, Sdl2Window, Window,
 };
-use skulpin::skia_safe::Surface;
 
 use crate::bridge::{produce_neovim_keybinding_string, UiCommand, BRIDGE};
 use crate::editor::EDITOR;
@@ -368,10 +368,15 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
-                    if keycode == Some(Keycode::RGui) {
-                        self.vimming = false;
-                        self.snapshot = self.renderer.surface.clone();
-                        self.renderer.surface = None;
+                    match keycode {
+                        Some(Keycode::RGui) => {
+                            self.vimming = false;
+                            self.snapshot = self.renderer.surface.clone();
+                            self.renderer.surface = None;
+                            self.clear_canvas();
+                            return;
+                        }
+                        _ => {}
                     }
                 }
                 Event::TextInput { text, .. } => keytext = Some(text),
@@ -403,32 +408,83 @@ impl WindowWrapper {
     pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } => self.handle_quit(),
+                Event::Quit { .. } => {
+                    self.handle_quit();
+                    self.vimming = true;
+                },
                 Event::KeyDown {
                     keycode: received_keycode,
                     ..
-                } => {
-                    if received_keycode == Some(Keycode::RGui) {
+                } => match received_keycode {
+                    Some(Keycode::RGui) => {
                         self.vimming = true;
                         self.renderer.surface = self.snapshot.clone();
                         self.snapshot = None;
                         REDRAW_SCHEDULER.queue_next_frame();
                     }
-                }
-                Event::Window {
-                    win_event: WindowEvent::FocusLost,
-                    ..
-                } => self.handle_focus_lost(),
-                Event::Window {
-                    win_event: WindowEvent::FocusGained,
-                    ..
-                } => {
-                    self.handle_focus_gained();
-                }
-                Event::Window { .. } => REDRAW_SCHEDULER.queue_next_frame(),
+                    Some(Keycode::Up) | Some(Keycode::W) => {
+                        println!("up");
+                    }
+                    Some(Keycode::Left) | Some(Keycode::A) => {
+                        println!("left");
+                    }
+                    Some(Keycode::Down) | Some(Keycode::S) => {
+                        println!("down");
+                    }
+                    Some(Keycode::Right) | Some(Keycode::D) => {
+                        println!("right");
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         }
+    }
+
+    pub fn clear_canvas(&mut self) -> bool {
+        let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
+            canvas.clear(colors::BLACK.to_color());
+        };
+
+        let sdl_window_wrapper = Sdl2Window::new(&self.window);
+        for i in 0..3 {
+            let error = self
+            .skulpin_renderer
+            .draw(&sdl_window_wrapper, cloj)
+            .is_err();
+            if error {
+                error!("Render failed. Closing");
+                return false;
+            }
+        }
+        
+        true
+    }
+
+
+    pub fn draw_snake(&mut self) -> bool {
+        let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
+            let region = Rect::new(
+                0.0,
+                0.0,
+                10.0,
+                10.0,
+            );
+            let mut paint = Paint::new(colors::GREEN, None);
+            paint.set_anti_alias(false);
+            canvas.draw_rect(region, &paint);
+        };
+
+        let sdl_window_wrapper = Sdl2Window::new(&self.window);
+        let error = self
+            .skulpin_renderer
+            .draw(&sdl_window_wrapper, cloj)
+            .is_err();
+        if error {
+            error!("Render failed. Closing");
+            return false;
+        }
+        true
     }
 
     pub fn draw_frame(&mut self) -> bool {
@@ -447,22 +503,20 @@ impl WindowWrapper {
 
         let current_size = self.previous_size;
 
-        if REDRAW_SCHEDULER.should_draw() || SETTINGS.get::<WindowSettings>().no_idle || !self.vimming {
+        if REDRAW_SCHEDULER.should_draw()
+            || SETTINGS.get::<WindowSettings>().no_idle
+        {
             let renderer = &mut self.renderer;
-            let vimming = self.vimming;
+            let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
+                let dt = 1.0 / (SETTINGS.get::<WindowSettings>().refresh_rate as f32);
+
+                if renderer.draw(canvas, &coordinate_system_helper, dt) {
+                    handle_new_grid_size(current_size, &renderer)
+                }
+            };
             let error = self
                 .skulpin_renderer
-                .draw(&sdl_window_wrapper, |canvas, coordinate_system_helper| {
-                    let dt = 1.0 / (SETTINGS.get::<WindowSettings>().refresh_rate as f32);
-
-                    if vimming {
-                        if renderer.draw(canvas, &coordinate_system_helper, dt) {
-                            handle_new_grid_size(current_size, &renderer)
-                        }
-                    } else {
-                        renderer.draw_snake(canvas, &coordinate_system_helper, dt);
-                    }
-                })
+                .draw(&sdl_window_wrapper, cloj)
                 .is_err();
             if error {
                 error!("Render failed. Closing");
@@ -471,6 +525,56 @@ impl WindowWrapper {
         }
 
         true
+    }
+}
+
+enum Direction {
+    Up,
+    Left,
+    Down,
+    Right,
+}
+
+struct Snake {
+    segments: Vec<Rect>,
+    pub direction: Direction,
+    scale: f32,
+}
+
+impl Snake {
+    fn new() -> Self {
+        let head = Rect::new(10.0, 0.0, 20.0, 10.0);
+        let tail = Rect::new(0.0, 0.0, 10.0, 10.0);
+        let segments = Vec::new();
+        segments.push(head);
+        segments.push(tail);
+
+        Snake {
+            segments,
+            direction: Direction::Right,
+            scale: 10.0,
+        }
+    }
+
+    fn move_seg(&self, s: &mut Rect) {
+        let top = s.top();
+        let left = s.left();
+        let bottom = s.bottom();
+        let right = s.right();
+
+        let rect = match self.direction {
+            Direction::Up => [top - self.scale, left, bottom - self.scale, right],
+            Direction::Left => [top, left - self.scale, bottom, right - self.scale],
+            Direction::Down => [top + self.scale, left, bottom + self.scale, right],
+            Direction::Right => [top, left + self.scale, bottom, right + self.scale],
+        }
+
+        s.set(..rect);
+    }
+
+    fn move_all(&mut self, boundaries: (f32, f32)) {
+        for s in self.segments {
+        }
     }
 }
 
@@ -516,12 +620,14 @@ pub fn ui_loop() {
 
         if window.vimming {
             window.process_editor_events(&mut event_pump);
+            if !window.draw_frame() {
+                break;
+            }
         } else {
             window.process_snake_events(&mut event_pump);
-        }
-
-        if !window.draw_frame() {
-            break;
+            if !window.draw_snake() {
+                break;
+            }
         }
 
         let elapsed = frame_start.elapsed();
