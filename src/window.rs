@@ -556,6 +556,10 @@ impl Snake {
         }
     }
 
+    fn set_direction(&mut self, direction: Direction) {
+        
+    }
+
     fn move_seg(&self, s: &mut Rect) {
         let top = s.top();
         let left = s.left();
