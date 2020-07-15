@@ -528,56 +528,53 @@ impl WindowWrapper {
     }
 }
 
-enum Direction {
-    Up,
-    Left,
-    Down,
-    Right,
-}
-
 struct Snake {
     segments: Vec<Rect>,
-    pub direction: Direction,
+    pub direction: i32,
     scale: f32,
 }
 
 impl Snake {
     fn new() -> Self {
         let head = Rect::new(10.0, 0.0, 20.0, 10.0);
-        let tail = Rect::new(0.0, 0.0, 10.0, 10.0);
-        let segments = Vec::new();
+        let tail = Rect::new(0.0, 10.0, 0.0, 10.0);
+        let mut segments = Vec::new();
         segments.push(head);
         segments.push(tail);
 
         Snake {
             segments,
-            direction: Direction::Right,
+            direction: 3,
             scale: 10.0,
         }
     }
 
-    fn set_direction(&mut self, direction: Direction) {
-        
+    // 0 - up, 1 - left, 2 - down, 3 - right
+    fn set_direction(&mut self, direction: i32) {
+        let switch = (self.direction + direction) % 2;
+        self.direction =  switch * direction + (switch + 1) * self.direction;
     }
 
-    fn move_seg(&self, s: &mut Rect) {
+    fn move_seg(direction: i32, scale: f32, s: &mut Rect) {
         let top = s.top();
         let left = s.left();
         let bottom = s.bottom();
         let right = s.right();
 
-        let rect = match self.direction {
-            Direction::Up => [top - self.scale, left, bottom - self.scale, right],
-            Direction::Left => [top, left - self.scale, bottom, right - self.scale],
-            Direction::Down => [top + self.scale, left, bottom + self.scale, right],
-            Direction::Right => [top, left + self.scale, bottom, right + self.scale],
-        }
+        let rect = match direction {
+            0 => [top - scale, left, bottom - scale, right],
+            1 => [top, left - scale, bottom, right - scale],
+            2 => [top + scale, left, bottom + scale, right],
+            3 => [top, left + scale, bottom, right + scale],
+            _ => [top, left, bottom, right]
+        };
 
-        s.set(..rect);
+        s.set_ltrb(rect[0], rect[1], rect[2], rect[3]);
     }
 
     fn move_all(&mut self, boundaries: (f32, f32)) {
-        for s in self.segments {
+        for mut s in &mut self.segments {
+            Snake::move_seg(self.direction, self.scale, &mut s)
         }
     }
 }
