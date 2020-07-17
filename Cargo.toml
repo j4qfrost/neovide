@@ -1,71 +1,100 @@
 [package]
-name = "neovide"
-version = "0.6.0"
 authors = ["keith <keith@the-simmons.net>"]
-edition = "2018"
 build = "build.rs"
 description = "A simple GUI for Neovim."
-
-[features]
-default = ["embed-fonts"]
-embed-fonts = []
-
+edition = "2018"
+name = "neovide"
+version = "0.6.0"
 [dependencies]
+anyhow = "1.0.26"
+async-trait = "0.1.18"
+byteorder = "*"
+cfg-if = "0.1.10"
+derive-new = "0.5"
+dirs = "2"
 euclid = "0.20.7"
 font-kit = "0.6.0"
-skribo = { git = "https://github.com/linebender/skribo" }
-lru = "0.4.3"
-skulpin = { git = "https://github.com/aclysma/skulpin", branch = "master", features = ["skulpin_sdl2"] }
-derive-new = "0.5"
-rmpv = "0.4.4"
-rust-embed = { version = "5.2.0", features = ["debug-embed"] }
 image = "0.22.3"
-nvim-rs = { git = "https://github.com/kethku/nvim-rs", features = [ "use_tokio" ] }
-tokio = { version = "0.2.9", features = [ "blocking", "process", "time" ] }
-async-trait = "0.1.18"
 lazy_static = "1.4.0"
-unicode-segmentation = "1.6.0"
 log = "0.4.8"
-flexi_logger = { version = "0.14.6", default-features = false }
-anyhow = "1.0.26"
-parking_lot="0.10.0"
-cfg-if = "0.1.10"
+lru = "0.4.3"
+parking_lot = "0.10.0"
+rand = "*"
+rmpv = "0.4.4"
+unicode-segmentation = "1.6.0"
 which = "4"
-dirs = "2"
+
+[dependencies.flexi_logger]
+default-features = false
+version = "0.14.6"
+
+[dependencies.nvim-rs]
+features = ["use_tokio"]
+git = "https://github.com/kethku/nvim-rs"
+
+[dependencies.rust-embed]
+features = ["debug-embed"]
+version = "5.2.0"
+
+[dependencies.skribo]
+git = "https://github.com/linebender/skribo"
+
+[dependencies.skulpin]
+branch = "master"
+features = ["skulpin_sdl2"]
+git = "https://github.com/aclysma/skulpin"
+
+[dependencies.tokio]
+features = ["blocking", "process", "time"]
+version = "0.2.9"
 
 [dev-dependencies]
 mockall = "0.7.0"
 rand = "0.7"
 
 [dev-dependencies.cargo-husky]
-version = "1"
 default-features = false
 features = ["precommit-hook", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
+version = "1"
 
-[target.'cfg(windows)'.dependencies]
-winapi = "0.3.8"
+[features]
+default = ["embed-fonts"]
+embed-fonts = []
 
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1.11"
-sdl2-sys = { version = "0.34", default-features = false, features = ["bundled", "static-link"] }
+[metadata]
+[metadata.bundle]
+category = "Productivity"
+copyright = "Copyright (c) keith 2020. All rights reserved."
+icon = ["assets/nvim.ico"]
+identifier = "com.kethku.neovide"
+long_description = "This is a simple graphical user interface for Neovim. Where possible there are some graphical improvements, but it should act functionally like the terminal UI.\n"
+name = "Neovide"
+resources = []
+short_description = "A simple GUI for Neovim."
+version = "0.6.0"
 
-[target.'cfg(macos)'.build-dependencies]
-sdl2-sys = { version = "0.34", default-features = false, features = ["bundled", "static-link"] }
-
+[profile]
 [profile.release]
 debug = true
-lto = true
 incremental = true
+lto = true
 
-[package.metadata.bundle]
-name = "Neovide"
-identifier = "com.kethku.neovide"
-icon = ["assets/nvim.ico"]
-version = "0.6.0"
-resources = []
-copyright = "Copyright (c) keith 2020. All rights reserved."
-category = "Productivity"
-short_description = "A simple GUI for Neovim."
-long_description = """
-This is a simple graphical user interface for Neovim. Where possible there are some graphical improvements, but it should act functionally like the terminal UI.
-"""
+[target]
+[target."cfg(macos)"]
+[target."cfg(macos)".build-dependencies]
+[target."cfg(macos)".build-dependencies.sdl2-sys]
+default-features = false
+features = ["bundled", "static-link"]
+version = "0.34"
+
+[target."cfg(windows)"]
+[target."cfg(windows)".build-dependencies]
+winres = "0.1.11"
+
+[target."cfg(windows)".build-dependencies.sdl2-sys]
+default-features = false
+features = ["bundled", "static-link"]
+version = "0.34"
+
+[target."cfg(windows)".dependencies]
+winapi = "0.3.8"

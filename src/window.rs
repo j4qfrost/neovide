@@ -1,3 +1,7 @@
+use byteorder::{ByteOrder, LittleEndian};
+use rand;
+use rand::Rng;
+use std::collections::LinkedList;
 use std::sync::atomic::Ordering;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -9,10 +13,10 @@ use skulpin::sdl2::keyboard::Keycode;
 use skulpin::sdl2::video::FullscreenType;
 use skulpin::sdl2::EventPump;
 use skulpin::sdl2::Sdl;
-use skulpin::skia_safe::{Surface, Canvas, colors, Paint, Rect};
+use skulpin::skia_safe::{colors, Canvas, Color, Color4f, IPoint, Paint, Rect, Surface};
 use skulpin::{
-    CoordinateSystem, CoordinateSystemHelper, LogicalSize, PhysicalSize, PresentMode, Renderer as SkulpinRenderer,
-    RendererBuilder, Sdl2Window, Window,
+    CoordinateSystem, CoordinateSystemHelper, LogicalSize, PhysicalSize, PresentMode,
+    Renderer as SkulpinRenderer, RendererBuilder, Sdl2Window, Window,
 };
 
 use crate::bridge::{produce_neovim_keybinding_string, UiCommand, BRIDGE};
@@ -62,6 +66,7 @@ struct WindowWrapper {
     cached_position: (i32, i32),
     vimming: bool,
     snapshot: Option<Surface>,
+    snake: Snake,
 }
 
 pub fn window_geometry() -> Result<(u64, u64), String> {
@@ -179,6 +184,7 @@ impl WindowWrapper {
             cached_position: (0, 0),
             vimming: true,
             snapshot: None,
+            snake: Snake::new(),
         }
     }
 
@@ -374,6 +380,9 @@ impl WindowWrapper {
                             self.snapshot = self.renderer.surface.clone();
                             self.renderer.surface = None;
                             self.clear_canvas();
+                            self.snake = Snake::new();
+                            self.cached_size = self.window.size();
+                            self.window.set_size(640, 480).unwrap();
                             return;
                         }
                         _ => {}
@@ -406,33 +415,39 @@ impl WindowWrapper {
     }
 
     pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
+        self.snake.move_all();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => {
                     self.handle_quit();
                     self.vimming = true;
-                },
+                }
                 Event::KeyDown {
                     keycode: received_keycode,
                     ..
                 } => match received_keycode {
+                    // 0 - up, 1 - left, 2 - down, 3 - right
                     Some(Keycode::RGui) => {
                         self.vimming = true;
                         self.renderer.surface = self.snapshot.clone();
                         self.snapshot = None;
                         REDRAW_SCHEDULER.queue_next_frame();
+                        self.window
+                            .set_size(self.cached_size.0, self.cached_size.1)
+                            .unwrap();
+                        return;
                     }
                     Some(Keycode::Up) | Some(Keycode::W) => {
-                        println!("up");
+                        self.snake.set_direction(0);
                     }
                     Some(Keycode::Left) | Some(Keycode::A) => {
-                        println!("left");
+                        self.snake.set_direction(1);
                     }
                     Some(Keycode::Down) | Some(Keycode::S) => {
-                        println!("down");
+                        self.snake.set_direction(2);
                     }
                     Some(Keycode::Right) | Some(Keycode::D) => {
-                        println!("right");
+                        self.snake.set_direction(3);
                     }
                     _ => {}
                 },
@@ -442,47 +457,68 @@ impl WindowWrapper {
     }
 
     pub fn clear_canvas(&mut self) -> bool {
-        let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
+        let cloj = |canvas: &mut Canvas, _coordinate_system_helper: CoordinateSystemHelper| {
             canvas.clear(colors::BLACK.to_color());
         };
 
         let sdl_window_wrapper = Sdl2Window::new(&self.window);
-        for i in 0..3 {
+        for _i in 0..5 {
             let error = self
-            .skulpin_renderer
-            .draw(&sdl_window_wrapper, cloj)
-            .is_err();
+                .skulpin_renderer
+                .draw(&sdl_window_wrapper, cloj)
+                .is_err();
             if error {
                 error!("Render failed. Closing");
                 return false;
             }
         }
-        
+
         true
     }
 
-
     pub fn draw_snake(&mut self) -> bool {
-        let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
-            let region = Rect::new(
-                0.0,
-                0.0,
-                10.0,
-                10.0,
-            );
-            let mut paint = Paint::new(colors::GREEN, None);
-            paint.set_anti_alias(false);
-            canvas.draw_rect(region, &paint);
-        };
+        let snake = &mut self.snake;
+        let tail = snake.pop_tail();
 
         let sdl_window_wrapper = Sdl2Window::new(&self.window);
-        let error = self
-            .skulpin_renderer
-            .draw(&sdl_window_wrapper, cloj)
-            .is_err();
-        if error {
-            error!("Render failed. Closing");
-            return false;
+        for _i in 0..3 {
+            let cloj = |canvas: &mut Canvas, _coordinate_system_helper: CoordinateSystemHelper| {
+                let mut green_paint = Paint::new(colors::GREEN, None);
+                let mut black_paint = Paint::new(colors::BLACK, None);
+                let mut white_paint = Paint::new(colors::WHITE, None);
+                green_paint.set_anti_alias(false);
+                black_paint.set_anti_alias(false);
+                white_paint.set_anti_alias(false);
+
+                canvas.draw_rect(snake.head, &green_paint);
+                if let Some(rattle) = tail {
+                    canvas.draw_rect(rattle, &black_paint);
+                }
+                let mut pixels: [u8; 4] = [0; 4];
+                println!("{:?}", &canvas.image_info().compute_byte_size(4));
+                if canvas.read_pixels(
+                    &canvas.image_info(),
+                    &mut pixels,
+                    4,
+                    IPoint::from((snake.head.x() as i32, snake.head.y() as i32)),
+                ) {
+                    let color = Color::new(LittleEndian::read_u32(&pixels));
+                    println!("{:?}", color);
+                    snake.collide(Color4f::from(color));
+                }
+
+                if !snake.food.live {
+                    canvas.draw_rect(snake.food.location, &white_paint);
+                }
+            };
+            let error = self
+                .skulpin_renderer
+                .draw(&sdl_window_wrapper, cloj)
+                .is_err();
+            if error {
+                error!("Render failed. Closing");
+                return false;
+            }
         }
         true
     }
@@ -503,9 +539,7 @@ impl WindowWrapper {
 
         let current_size = self.previous_size;
 
-        if REDRAW_SCHEDULER.should_draw()
-            || SETTINGS.get::<WindowSettings>().no_idle
-        {
+        if REDRAW_SCHEDULER.should_draw() || SETTINGS.get::<WindowSettings>().no_idle {
             let renderer = &mut self.renderer;
             let cloj = |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
                 let dt = 1.0 / (SETTINGS.get::<WindowSettings>().refresh_rate as f32);
@@ -528,54 +562,118 @@ impl WindowWrapper {
     }
 }
 
+struct Food {
+    pub live: bool,
+    pub location: Rect,
+}
+
+impl Food {
+    fn new(boundaries: (f32, f32), scale: f32) -> Self {
+        Self {
+            live: false,
+            location: Food::drop_food(boundaries, scale),
+        }
+    }
+
+    fn drop_food(boundaries: (f32, f32), scale: f32) -> Rect {
+        let mut rng = rand::thread_rng();
+
+        let n1: u32 = rng.gen_range(0, (boundaries.0 - scale) as u32);
+        let n2: u32 = rng.gen_range(0, (boundaries.1 - scale) as u32);
+        let f1 = n1 as f32;
+        let f2 = n2 as f32;
+        Rect::new(f1, f2, f1 + scale, f2 + scale)
+    }
+}
+
 struct Snake {
-    segments: Vec<Rect>,
+    pub head: Rect,
+    tail: LinkedList<Rect>,
     pub direction: i32,
+    step: f32,
     scale: f32,
+    pub color: Color4f,
+    grow: bool,
+    pub play_area: (f32, f32),
+    pub food: Food,
 }
 
 impl Snake {
     fn new() -> Self {
         let head = Rect::new(10.0, 0.0, 20.0, 10.0);
-        let tail = Rect::new(0.0, 10.0, 0.0, 10.0);
-        let mut segments = Vec::new();
-        segments.push(head);
-        segments.push(tail);
-
+        let mut tail = LinkedList::new();
+        tail.push_back(Rect::new(0.0, 0.0, 10.0, 10.0));
+        tail.push_back(Rect::new(-10.0, 0.0, 0.0, 10.0));
+        let play_area = (640.0, 480.0);
+        let scale = 10.0;
         Snake {
-            segments,
+            head,
+            tail,
             direction: 3,
-            scale: 10.0,
+            step: 10.0,
+            scale,
+            color: colors::GREEN,
+            grow: false,
+            play_area,
+            food: Food::new(play_area, scale),
         }
     }
 
     // 0 - up, 1 - left, 2 - down, 3 - right
     fn set_direction(&mut self, direction: i32) {
         let switch = (self.direction + direction) % 2;
-        self.direction =  switch * direction + (switch + 1) * self.direction;
-    }
-
-    fn move_seg(direction: i32, scale: f32, s: &mut Rect) {
-        let top = s.top();
-        let left = s.left();
-        let bottom = s.bottom();
-        let right = s.right();
-
-        let rect = match direction {
-            0 => [top - scale, left, bottom - scale, right],
-            1 => [top, left - scale, bottom, right - scale],
-            2 => [top + scale, left, bottom + scale, right],
-            3 => [top, left + scale, bottom, right + scale],
-            _ => [top, left, bottom, right]
-        };
-
-        s.set_ltrb(rect[0], rect[1], rect[2], rect[3]);
-    }
-
-    fn move_all(&mut self, boundaries: (f32, f32)) {
-        for mut s in &mut self.segments {
-            Snake::move_seg(self.direction, self.scale, &mut s)
+        if switch == 1 {
+            self.direction = direction;
         }
+    }
+
+    fn move_seg(direction: i32, step: f32, boundaries: (f32, f32), s: &mut Rect) {
+        match direction {
+            0 => s.set_xywh(
+                s.x(),
+                (s.y() - step + boundaries.1) % boundaries.1,
+                s.width(),
+                s.height(),
+            ),
+            1 => s.set_xywh(
+                (s.x() - step + boundaries.0) % boundaries.0,
+                s.y(),
+                s.width(),
+                s.height(),
+            ),
+            2 => s.set_xywh(s.x(), (s.y() + step) % boundaries.1, s.width(), s.height()),
+            3 => s.set_xywh((s.x() + step) % boundaries.0, s.y(), s.width(), s.height()),
+            _ => {}
+        };
+    }
+
+    fn collide(&mut self, other_color: Color4f) -> bool {
+        if other_color == self.color {
+            return false;
+        } else if other_color == colors::WHITE {
+            self.grow = true;
+            self.food.location = Food::drop_food(self.play_area, self.scale);
+        }
+        true
+    }
+
+    fn pop_tail(&mut self) -> Option<Rect> {
+        if !self.grow {
+            return self.tail.pop_front();
+        }
+        self.grow = false;
+
+        None
+    }
+
+    fn move_all(&mut self) {
+        self.tail.push_back(Rect::new(
+            self.head.left(),
+            self.head.top(),
+            self.head.right(),
+            self.head.bottom(),
+        ));
+        Snake::move_seg(self.direction, self.step, self.play_area, &mut self.head);
     }
 }
 
