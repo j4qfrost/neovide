@@ -1,5 +1,3 @@
-use byteorder::{ByteOrder, LittleEndian};
-use rand;
 use rand::Rng;
 use std::collections::LinkedList;
 use std::sync::atomic::Ordering;
@@ -14,10 +12,7 @@ use skulpin::sdl2::video::FullscreenType;
 use skulpin::sdl2::EventPump;
 use skulpin::sdl2::Sdl;
 use skulpin::skia_safe::gpu::SurfaceOrigin;
-use skulpin::skia_safe::wrapper::PointerWrapper;
-use skulpin::skia_safe::{
-    colors, Budgeted, Canvas, Color, Color4f, EncodedImageFormat, IPoint, Paint, Pixmap, Rect, Surface,
-};
+use skulpin::skia_safe::{colors, Budgeted, Canvas, Color, IPoint, Paint, Rect, Surface};
 use skulpin::{
     CoordinateSystem, CoordinateSystemHelper, LogicalSize, PhysicalSize, PresentMode,
     Renderer as SkulpinRenderer, RendererBuilder, Sdl2Window, Window,
@@ -378,17 +373,14 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
-                    match keycode {
-                        Some(Keycode::RGui) => {
-                            self.vimming = false;
-                            self.snapshot = self.renderer.surface.clone();
-                            self.renderer.surface = None;
-                            self.snake = Snake::new();
-                            self.cached_size = self.window.size();
-                            self.window.set_size(640, 480).unwrap();
-                            return;
-                        }
-                        _ => {}
+                    if let Some(Keycode::RGui) = keycode {
+                        self.vimming = false;
+                        self.snapshot = self.renderer.surface.clone();
+                        self.renderer.surface = None;
+                        self.snake = Snake::new();
+                        self.cached_size = self.window.size();
+                        self.window.set_size(640, 480).unwrap();
+                        return;
                     }
                 }
                 Event::TextInput { text, .. } => keytext = Some(text),
@@ -419,8 +411,13 @@ impl WindowWrapper {
 
     pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
         self.snake.move_all();
-        let loc = (self.snake.head.x() as i32 * 2, self.snake.head.y() as i32 * 2);
-        self.snake.collide(loc);
+        let loc = (
+            self.snake.head.x() as i32 * 2,
+            self.snake.head.y() as i32 * 2,
+        );
+        if !self.snake.collide(loc) {
+            self.vimming = true;
+        }
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => {
@@ -465,20 +462,18 @@ impl WindowWrapper {
         let snake = &mut self.snake;
         let sdl_window_wrapper = Sdl2Window::new(&self.window);
         let tail = snake.pop_tail();
-        for _ in 0..1 {
-            let error = self
-                .skulpin_renderer
-                .draw(
-                    &sdl_window_wrapper,
-                    |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
-                        snake.draw(canvas, &coordinate_system_helper, tail);
-                    },
-                )
-                .is_err();
-            if error {
-                error!("Render failed. Closing");
-                return false;
-            }
+        let error = self
+            .skulpin_renderer
+            .draw(
+                &sdl_window_wrapper,
+                |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
+                    snake.draw(canvas, &coordinate_system_helper, tail);
+                },
+            )
+            .is_err();
+        if error {
+            error!("Render failed. Closing");
+            return false;
         }
 
         true
@@ -551,7 +546,7 @@ struct Snake {
     pub direction: i32,
     step: f32,
     scale: f32,
-    pub color: Color4f,
+    pub color: Color,
     grow: bool,
     pub play_area: (f32, f32),
     pub food: Food,
@@ -572,7 +567,7 @@ impl Snake {
             direction: 3,
             step: 10.0,
             scale,
-            color: colors::GREEN,
+            color: Color::GREEN,
             grow: false,
             play_area,
             food: Food::new(play_area, scale),
@@ -594,21 +589,15 @@ impl Snake {
             let image = image.new_non_texture_image().unwrap();
             if let Some(pm) = image.peek_pixels() {
                 let color = pm.get_color(IPoint::from(loc));
-                if color == Color::WHITE {
-                    let data = image.encode_to_data(EncodedImageFormat::PNG).unwrap();
-                    write_file(data.as_bytes(), Path::new("./"), "test", "png");
-                    std::process::exit(0);
+                self.surface = Some(surface);
+                if color == self.color {
+                    return false;
+                } else if color == Color::WHITE {
+                    self.grow = true;
+                    self.food.location = Food::drop_food(self.play_area, self.scale);
                 }
             }
-            self.surface = Some(surface);
         }
-
-        // if other_color == self.color {
-        //     return false;
-        // } else if other_color == colors::WHITE {
-        //     self.grow = true;
-        //     self.food.location = Food::drop_food(self.play_area, self.scale);
-        // }
         true
     }
 
@@ -617,33 +606,17 @@ impl Snake {
             return self.tail.pop_front();
         }
         self.grow = false;
-
         None
     }
 
-    fn next_move(
-        direction: i32,
-        step: f32,
-        boundaries: (f32, f32),
-        s: &Rect,
-    ) -> (f32, f32) {
+    fn next_move(direction: i32, step: f32, boundaries: (f32, f32), s: &Rect) -> (f32, f32) {
         match direction {
-            0 => (
-                s.x(),
-                (s.y() - step + boundaries.1) % boundaries.1,
-            ),
-            1 => (
-                (s.x() - step + boundaries.0) % boundaries.0,
-                s.y(),
-            ),
+            0 => (s.x(), (s.y() - step + boundaries.1) % boundaries.1),
+            1 => ((s.x() - step + boundaries.0) % boundaries.0, s.y()),
             2 => (s.x(), (s.y() + step) % boundaries.1),
             3 => ((s.x() + step) % boundaries.0, s.y()),
             _ => (s.x(), s.y()),
         }
-    }
-
-    fn look_ahead(&self) -> (f32, f32) {
-        Snake::next_move(self.direction, self.step, self.play_area, &self.head)
     }
 
     fn move_all(&mut self) {
@@ -655,8 +628,12 @@ impl Snake {
         ));
 
         let next_move = Snake::next_move(self.direction, self.step, self.play_area, &self.head);
-        self.head
-            .set_xywh(next_move.0, next_move.1, self.head.width(), self.head.height());
+        self.head.set_xywh(
+            next_move.0,
+            next_move.1,
+            self.head.width(),
+            self.head.height(),
+        );
     }
 
     pub fn draw(
@@ -667,10 +644,10 @@ impl Snake {
     ) -> bool {
         let mut surface = self.surface.take().unwrap_or_else(|| {
             let mut context = gpu_canvas.gpu_context().unwrap();
-            let budgeted = Budgeted::YES;
+            let budgeted = Budgeted::Yes;
             let image_info = gpu_canvas.image_info();
             let surface_origin = SurfaceOrigin::TopLeft;
-            let mut surface = Surface::new_render_target(
+            Surface::new_render_target(
                 &mut context,
                 budgeted,
                 &image_info,
@@ -679,9 +656,7 @@ impl Snake {
                 None,
                 None,
             )
-            .expect("Could not create surface");
-            let canvas = surface.canvas();
-            surface
+            .expect("Could not create surface")
         });
 
         let mut canvas = surface.canvas();
@@ -696,18 +671,9 @@ impl Snake {
             canvas.draw_rect(rattle, &black_paint);
         }
         canvas.draw_rect(self.head, &green_paint);
-
-        println!("{:?}", self.food.location);
         canvas.draw_rect(self.food.location, &white_paint);
 
         let image = surface.image_snapshot();
-        let image = image.new_non_texture_image().unwrap();
-        // let image = image.new_non_texture_image().unwrap();
-        // if let Some(pm) = image.peek_pixels() {
-        //     let loc = ((self.head.x() + self.scale / 2.0) as i32, (self.head.y() + self.scale / 2.0) as i32);
-        //     let color = Color4f::from(pm.get_color(IPoint::from(loc)));
-        //     println!("{:?}: {}, {}", color, loc.0, loc.1);
-        // }
         let window_size = coordinate_system_helper.window_logical_size();
         let image_destination = Rect::new(
             0.0,
@@ -716,11 +682,7 @@ impl Snake {
             window_size.height as f32,
         );
 
-        let mut paint = Paint::new(colors::WHITE, None);
-        paint.set_anti_alias(false);
-
-        gpu_canvas.draw_image_rect(image, None, &image_destination, &paint);
-
+        gpu_canvas.draw_image_rect(image, None, &image_destination, &black_paint);
         self.surface = Some(surface);
 
         true
@@ -789,19 +751,4 @@ pub fn ui_loop() {
     }
 
     std::process::exit(0);
-}
-
-
-use std::fs;
-use std::io::Write;
-use std::path::Path;
-
-pub fn write_file(bytes: &[u8], path: &Path, name: &str, ext: &str) {
-    fs::create_dir_all(&path).expect("failed to create directory");
-
-    let mut file_path = path.join(name);
-    file_path.set_extension(ext);
-
-    let mut file = fs::File::create(file_path).expect("failed to create file");
-    file.write_all(bytes).expect("failed to write to file");
 }

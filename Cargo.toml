@@ -35,10 +35,9 @@ dirs = "2"
 rand = "*"
 
 [dependencies.skulpin]
-# branch = "master"
-features = ["skulpin_sdl2", "gpu"]
-# git = "https://github.com/aclysma/skulpin"
-path = "../skulpin"
+branch = "bump-upstream-deps"
+features = ["skulpin_sdl2"]
+git = "https://github.com/j4qfrost/skulpin"
 
 [dev-dependencies]
 mockall = "0.7.0"
