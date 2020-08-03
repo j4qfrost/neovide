@@ -88,11 +88,11 @@ checksum = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"
 
 [[package]]
 name = "ash"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69daec0742947f33a85931fa3cb0ce5f07929159dcbd1f0cbb5b2912e2978509"
+checksum = "c69a8137596e84c22d57f3da1b5de1d4230b1742a710091c85f4d7ce50f00f38"
 dependencies = [
- "libloading",
+ "libloading 0.6.2",
 ]
 
 [[package]]
@@ -137,9 +137,9 @@ checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
 name = "bindgen"
-version = "0.53.2"
+version = "0.54.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bb26d6a69a335b8cb0e7c7e9775cd5666611dc50a37177c3f2cedcfc040e8c8"
+checksum = "f4d49b80beb70d76cdac92f5681e666f9a697c737c4f4117a67229a0386dc736"
 dependencies = [
  "bitflags",
  "cexpr",
@@ -261,7 +261,7 @@ checksum = "fe6837df1d5cba2397b835c8530f51723267e16abbf83892e9e5af4f0e5dd10a"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.5.2",
 ]
 
 [[package]]
@@ -307,6 +307,21 @@ dependencies = [
  "block",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
+ "foreign-types",
+ "libc",
+ "objc",
+]
+
+[[package]]
+name = "cocoa"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c49e86fc36d5704151f5996b7b3795385f50ce09e3be0f47a0cfde869681cf8"
+dependencies = [
+ "bitflags",
+ "block",
+ "core-foundation 0.7.0",
+ "core-graphics 0.19.0",
  "foreign-types",
  "libc",
  "objc",
@@ -584,7 +599,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e51249a9d823a4cb79e3eca6dcd756153e8ed0157b6c04775d04bf1b13b76a"
 dependencies = [
- "libloading",
+ "libloading 0.5.2",
 ]
 
 [[package]]
@@ -1069,6 +1084,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cadb8e769f070c45df05c78c7520eb4cd17061d4ab262e43cfc68b4d00ac71c"
+dependencies = [
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "libz-sys"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1164,14 +1188,14 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.17.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f83c7dcc2038e12f68493fa3de44235df27b2497178e257185b4b5b5d028a1e4"
+checksum = "e198a0ee42bdbe9ef2c09d0b9426f3b2b47d90d93a4a9b0395c4cea605e92dc0"
 dependencies = [
  "bitflags",
  "block",
- "cocoa",
- "core-graphics 0.17.3",
+ "cocoa 0.20.2",
+ "core-graphics 0.19.0",
  "foreign-types",
  "log",
  "objc",
@@ -2032,9 +2056,9 @@ dependencies = [
 
 [[package]]
 name = "skia-bindings"
-version = "0.27.3"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa4cc006be07441ba7129e9ac39c750af5d5120759e95a3ba121d9c6ca94c0e"
+checksum = "2cbe393496c4190c81e813b136b62530ac99fbe5dcb933b3ea63ea3412cf361b"
 dependencies = [
  "bindgen",
  "cc",
@@ -2049,9 +2073,9 @@ dependencies = [
 
 [[package]]
 name = "skia-safe"
-version = "0.27.3"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cfb4ded0c38514114de4b0835e9aea335382f0e318a365be62af40dd904faa"
+checksum = "e85dd77aadb06173841cec124ece18fa99ffc404628df2f1a2b00ee53871dd05"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -2073,8 +2097,7 @@ dependencies = [
 
 [[package]]
 name = "skulpin"
-version = "0.9.4"
-source = "git+https://github.com/aclysma/skulpin#6139a1f158080b5007b81c60110162bbd4a9d3a9"
+version = "0.9.0"
 dependencies = [
  "log",
  "skulpin-app-winit",
@@ -2086,7 +2109,6 @@ dependencies = [
 [[package]]
 name = "skulpin-app-winit"
 version = "0.3.0"
-source = "git+https://github.com/aclysma/skulpin#6139a1f158080b5007b81c60110162bbd4a9d3a9"
 dependencies = [
  "log",
  "skulpin-renderer",
@@ -2095,8 +2117,7 @@ dependencies = [
 
 [[package]]
 name = "skulpin-renderer"
-version = "0.3.1"
-source = "git+https://github.com/aclysma/skulpin#6139a1f158080b5007b81c60110162bbd4a9d3a9"
+version = "0.3.0"
 dependencies = [
  "ash",
  "log",
@@ -2106,8 +2127,7 @@ dependencies = [
 
 [[package]]
 name = "skulpin-renderer-sdl2"
-version = "0.3.3"
-source = "git+https://github.com/aclysma/skulpin#6139a1f158080b5007b81c60110162bbd4a9d3a9"
+version = "0.3.0"
 dependencies = [
  "log",
  "sdl2",
@@ -2116,10 +2136,9 @@ dependencies = [
 
 [[package]]
 name = "skulpin-renderer-winit"
-version = "0.3.1"
-source = "git+https://github.com/aclysma/skulpin#6139a1f158080b5007b81c60110162bbd4a9d3a9"
+version = "0.3.0"
 dependencies = [
- "cocoa",
+ "cocoa 0.20.2",
  "log",
  "metal",
  "objc",
@@ -2562,7 +2581,7 @@ checksum = "fc53342d3d1a3d57f3949e0692d93d5a8adb7814d8683cef4a09c2b550e94246"
 dependencies = [
  "android_glue",
  "bitflags",
- "cocoa",
+ "cocoa 0.19.1",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "core-video-sys",
