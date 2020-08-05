@@ -410,7 +410,8 @@ impl WindowWrapper {
 
     pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
         self.snake.move_all();
-        if !self.snake.collide() {
+        let scale_factor = (1.0 / Sdl2Window::new(&self.window).scale_factor()) as i32;
+        if !self.snake.collide(scale_factor) {
             self.vimming = true;
         }
         for event in event_pump.poll_iter() {

@@ -70,8 +70,11 @@ impl Snake {
         }
     }
 
-    pub fn collide(&mut self) -> bool {
-        let loc = (self.head.x() as i32 * 2, self.head.y() as i32 * 2);
+    pub fn collide(&mut self, dpi_scale: i32) -> bool {
+        let loc = (
+            self.head.x() as i32 * dpi_scale,
+            self.head.y() as i32 * dpi_scale,
+        );
         if let Some(mut surface) = self.surface.take() {
             let image = surface.image_snapshot();
             let image = image.new_non_texture_image().unwrap();
