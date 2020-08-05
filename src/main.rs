@@ -8,6 +8,7 @@ mod editor;
 mod error_handling;
 mod redraw_scheduler;
 mod renderer;
+mod snake;
 mod window;
 
 #[macro_use]
