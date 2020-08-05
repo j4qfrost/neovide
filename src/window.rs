@@ -156,7 +156,7 @@ impl WindowWrapper {
             let sdl_window_wrapper = Sdl2Window::new(&sdl_window);
             RendererBuilder::new()
                 .prefer_integrated_gpu()
-                .use_vulkan_debug_layer(true)
+                .use_vulkan_debug_layer(false)
                 .present_mode_priority(vec![PresentMode::Immediate])
                 .coordinate_system(CoordinateSystem::Logical)
                 .build(&sdl_window_wrapper)
@@ -373,7 +373,7 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
-                    if let Some(Keycode::RGui) = keycode {
+                    if let Some(Keycode::RAlt) = keycode {
                         self.vimming = false;
                         self.snapshot = self.renderer.surface.clone();
                         self.renderer.surface = None;
@@ -411,9 +411,10 @@ impl WindowWrapper {
 
     pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
         self.snake.move_all();
+        let scale_factor = Sdl2Window::new(&self.window).scale_factor();
         let loc = (
-            self.snake.head.x() as i32 * 2,
-            self.snake.head.y() as i32 * 2,
+            self.snake.head.x() as i32 * scale_factor as i32,
+            self.snake.head.y() as i32 * scale_factor as i32,
         );
         if !self.snake.collide(loc) {
             self.vimming = true;
@@ -429,7 +430,7 @@ impl WindowWrapper {
                     ..
                 } => match received_keycode {
                     // 0 - up, 1 - left, 2 - down, 3 - right
-                    Some(Keycode::RGui) => {
+                    Some(Keycode::RAlt) => {
                         self.vimming = true;
                         self.renderer.surface = self.snapshot.clone();
                         self.snapshot = None;
