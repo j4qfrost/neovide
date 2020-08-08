@@ -22,7 +22,7 @@ use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
 
-use crate::plugin::*;
+use crate::plugin::{snake::*, Plugin};
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -478,7 +478,7 @@ pub fn ui_loop() {
         .context
         .event_pump()
         .expect("Could not create sdl event pump");
-    
+
     let mut snake_plugin = SnakePlugin::new();
 
     loop {

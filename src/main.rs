@@ -6,9 +6,9 @@ mod settings;
 mod bridge;
 mod editor;
 mod error_handling;
+mod plugin;
 mod redraw_scheduler;
 mod renderer;
-mod plugin;
 mod window;
 
 #[macro_use]
