@@ -22,7 +22,7 @@ use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
 
-use crate::snake::Snake;
+use crate::plugin::*;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -49,22 +49,21 @@ fn handle_new_grid_size(new_size: LogicalSize, renderer: &Renderer) {
     }
 }
 
-struct WindowWrapper {
+pub struct WindowWrapper {
     context: Sdl,
-    window: sdl2::video::Window,
-    skulpin_renderer: SkulpinRenderer,
-    renderer: Renderer,
+    pub window: sdl2::video::Window,
+    pub skulpin_renderer: SkulpinRenderer,
+    pub renderer: Renderer,
     mouse_down: bool,
     mouse_position: LogicalSize,
     title: String,
     previous_size: LogicalSize,
     transparency: f32,
     fullscreen: bool,
-    cached_size: (u32, u32),
-    cached_position: (i32, i32),
-    vimming: bool,
-    snapshot: Option<Surface>,
-    snake: Snake,
+    pub cached_size: (u32, u32),
+    pub cached_position: (i32, i32),
+    pub vimming: bool,
+    pub snapshot: Option<Surface>,
 }
 
 pub fn window_geometry() -> Result<(u64, u64), String> {
@@ -182,7 +181,6 @@ impl WindowWrapper {
             cached_position: (0, 0),
             vimming: true,
             snapshot: None,
-            snake: Snake::new(),
         }
     }
 
@@ -264,7 +262,7 @@ impl WindowWrapper {
         }
     }
 
-    fn handle_quit(&mut self) {
+    pub fn handle_quit(&mut self) {
         BRIDGE.queue_command(UiCommand::Quit);
     }
 
@@ -376,7 +374,6 @@ impl WindowWrapper {
                         self.vimming = false;
                         self.snapshot = self.renderer.surface.clone();
                         self.renderer.surface = None;
-                        self.snake = Snake::new();
                         self.cached_size = self.window.size();
                         self.window.set_size(640, 480).unwrap();
                         return;
@@ -406,73 +403,6 @@ impl WindowWrapper {
         if !ignore_text_this_frame {
             self.handle_keyboard_input(keycode, keytext);
         }
-    }
-
-    pub fn process_snake_events(&mut self, event_pump: &mut EventPump) {
-        self.snake.move_all();
-        let scale_factor = (1.0 / Sdl2Window::new(&self.window).scale_factor()) as i32;
-        if !self.snake.collide(scale_factor) {
-            self.vimming = true;
-        }
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } => {
-                    self.handle_quit();
-                    self.vimming = true;
-                }
-                Event::KeyDown {
-                    keycode: received_keycode,
-                    ..
-                } => match received_keycode {
-                    // 0 - up, 1 - left, 2 - down, 3 - right
-                    Some(Keycode::RGui) => {
-                        self.vimming = true;
-                        self.renderer.surface = self.snapshot.clone();
-                        self.snapshot = None;
-                        REDRAW_SCHEDULER.queue_next_frame();
-                        self.window
-                            .set_size(self.cached_size.0, self.cached_size.1)
-                            .unwrap();
-                        return;
-                    }
-                    Some(Keycode::Up) | Some(Keycode::W) => {
-                        self.snake.set_direction(0);
-                    }
-                    Some(Keycode::Left) | Some(Keycode::A) => {
-                        self.snake.set_direction(1);
-                    }
-                    Some(Keycode::Down) | Some(Keycode::S) => {
-                        self.snake.set_direction(2);
-                    }
-                    Some(Keycode::Right) | Some(Keycode::D) => {
-                        self.snake.set_direction(3);
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
-        }
-    }
-
-    pub fn draw_snake(&mut self) -> bool {
-        let snake = &mut self.snake;
-        let sdl_window_wrapper = Sdl2Window::new(&self.window);
-        let tail = snake.pop_tail();
-        let error = self
-            .skulpin_renderer
-            .draw(
-                &sdl_window_wrapper,
-                |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
-                    snake.draw(canvas, &coordinate_system_helper, tail);
-                },
-            )
-            .is_err();
-        if error {
-            error!("Render failed. Closing");
-            return false;
-        }
-
-        true
     }
 
     pub fn draw_frame(&mut self) -> bool {
@@ -548,6 +478,8 @@ pub fn ui_loop() {
         .context
         .event_pump()
         .expect("Could not create sdl event pump");
+    
+    let mut snake_plugin = SnakePlugin::new();
 
     loop {
         let frame_start = Instant::now();
@@ -560,8 +492,13 @@ pub fn ui_loop() {
                 break;
             }
         } else {
-            window.process_snake_events(&mut event_pump);
-            if !window.draw_snake() {
+            // window.process_snake_events(&mut event_pump);
+            // if !window.draw_snake() {
+            //     break;
+            // }
+            snake_plugin.update(&mut window);
+            snake_plugin.process_events(&mut window, &mut event_pump);
+            if snake_plugin.draw(&mut window) < 0 {
                 break;
             }
         }
