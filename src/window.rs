@@ -492,10 +492,6 @@ pub fn ui_loop() {
                 break;
             }
         } else {
-            // window.process_snake_events(&mut event_pump);
-            // if !window.draw_snake() {
-            //     break;
-            // }
             snake_plugin.update(&mut window);
             snake_plugin.process_events(&mut window, &mut event_pump);
             if snake_plugin.draw(&mut window) < 0 {
