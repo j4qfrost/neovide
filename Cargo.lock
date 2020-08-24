@@ -1319,7 +1319,6 @@ version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "byteorder",
  "cargo-husky",
  "cfg-if",
  "derive-new",
@@ -2098,7 +2097,7 @@ dependencies = [
 [[package]]
 name = "skulpin"
 version = "0.9.5"
-source = "git+https://github.com/j4qfrost/skulpin?branch=bump-upstream-deps#c2965d80d2e8216ef5ee5971fa5e9eef09214791"
+source = "git+https://github.com/aclysma/skulpin?branch=master#f9b56db5632f10679317c3ec4e04d6985d6a63a6"
 dependencies = [
  "log",
  "skulpin-app-winit",
@@ -2110,7 +2109,7 @@ dependencies = [
 [[package]]
 name = "skulpin-app-winit"
 version = "0.3.0"
-source = "git+https://github.com/j4qfrost/skulpin?branch=bump-upstream-deps#c2965d80d2e8216ef5ee5971fa5e9eef09214791"
+source = "git+https://github.com/aclysma/skulpin?branch=master#f9b56db5632f10679317c3ec4e04d6985d6a63a6"
 dependencies = [
  "log",
  "skulpin-renderer",
@@ -2120,7 +2119,7 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer"
 version = "0.3.1"
-source = "git+https://github.com/j4qfrost/skulpin?branch=bump-upstream-deps#c2965d80d2e8216ef5ee5971fa5e9eef09214791"
+source = "git+https://github.com/aclysma/skulpin?branch=master#f9b56db5632f10679317c3ec4e04d6985d6a63a6"
 dependencies = [
  "ash",
  "log",
@@ -2131,7 +2130,7 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer-sdl2"
 version = "0.3.3"
-source = "git+https://github.com/j4qfrost/skulpin?branch=bump-upstream-deps#c2965d80d2e8216ef5ee5971fa5e9eef09214791"
+source = "git+https://github.com/aclysma/skulpin?branch=master#f9b56db5632f10679317c3ec4e04d6985d6a63a6"
 dependencies = [
  "log",
  "sdl2",
@@ -2141,7 +2140,7 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer-winit"
 version = "0.3.1"
-source = "git+https://github.com/j4qfrost/skulpin?branch=bump-upstream-deps#c2965d80d2e8216ef5ee5971fa5e9eef09214791"
+source = "git+https://github.com/aclysma/skulpin?branch=master#f9b56db5632f10679317c3ec4e04d6985d6a63a6"
 dependencies = [
  "cocoa 0.20.2",
  "log",

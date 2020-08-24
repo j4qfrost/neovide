@@ -84,7 +84,7 @@ pub fn window_geometry() -> Result<(u64, u64), String> {
                 .map(|dimension| {
                     dimension
                         .parse::<u64>()
-                        .or_else(|_| Err(invalid_parse_err.as_str()))
+                        .map_err(|_| invalid_parse_err.as_str())
                         .and_then(|dimension| {
                             if dimension > 0 {
                                 Ok(dimension)
@@ -372,7 +372,7 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
-                    if let Some(Keycode::RGui) = keycode {
+                    if let Some(Keycode::RShift) = keycode {
                         self.vimming = false;
                         self.snapshot = self.renderer.surface.clone();
                         self.renderer.surface = None;
@@ -425,7 +425,7 @@ impl WindowWrapper {
                     ..
                 } => match received_keycode {
                     // 0 - up, 1 - left, 2 - down, 3 - right
-                    Some(Keycode::RGui) => {
+                    Some(Keycode::RShift) => {
                         self.vimming = true;
                         self.renderer.surface = self.snapshot.clone();
                         self.snapshot = None;

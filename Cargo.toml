@@ -7,15 +7,15 @@ build = "build.rs"
 description = "A simple GUI for Neovim."
 
 [features]
-default = ["embed-fonts"]
+default = []
 embed-fonts = []
 
 [dependencies]
-byteorder = "*"
 euclid = "0.20.7"
 font-kit = "0.6.0"
 skribo = { git = "https://github.com/linebender/skribo" }
 lru = "0.4.3"
+skulpin = { git = "https://github.com/aclysma/skulpin", branch = "master", features = ["skulpin_sdl2"] }
 derive-new = "0.5"
 rmpv = "0.4.4"
 rust-embed = { version = "5.2.0", features = ["debug-embed"] }
@@ -32,16 +32,10 @@ parking_lot="0.10.0"
 cfg-if = "0.1.10"
 which = "4"
 dirs = "2"
-rand = "*"
-
-[dependencies.skulpin]
-branch = "bump-upstream-deps"
-features = ["skulpin_sdl2"]
-git = "https://github.com/j4qfrost/skulpin"
+rand = "0.7"
 
 [dev-dependencies]
 mockall = "0.7.0"
-rand = "0.7"
 
 [dev-dependencies.cargo-husky]
 version = "1"
