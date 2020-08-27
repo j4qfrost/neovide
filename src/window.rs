@@ -22,7 +22,7 @@ use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
 
-use crate::plugin::{snake::*, Plugin};
+use crate::plugin::{fork::*, Plugin};
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -370,7 +370,7 @@ impl WindowWrapper {
                     ..
                 } => {
                     keycode = received_keycode;
-                    if let Some(Keycode::RGui) = keycode {
+                    if let Some(Keycode::RShift) = keycode {
                         self.vimming = false;
                         self.snapshot = self.renderer.surface.clone();
                         self.renderer.surface = None;
@@ -479,7 +479,7 @@ pub fn ui_loop() {
         .event_pump()
         .expect("Could not create sdl event pump");
 
-    let mut snake_plugin = SnakePlugin::new();
+    let mut fork_plugin = ForkPlugin::new();
 
     loop {
         let frame_start = Instant::now();
@@ -492,9 +492,9 @@ pub fn ui_loop() {
                 break;
             }
         } else {
-            snake_plugin.update(&mut window);
-            snake_plugin.process_events(&mut window, &mut event_pump);
-            if snake_plugin.draw(&mut window) < 0 {
+            fork_plugin.process_events(&mut window, &mut event_pump);
+            fork_plugin.update(&mut window);
+            if fork_plugin.draw(&mut window) < 0 {
                 break;
             }
         }

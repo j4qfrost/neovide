@@ -5,13 +5,78 @@ use skulpin::skia_safe::gpu::SurfaceOrigin;
 use skulpin::skia_safe::{colors, Budgeted, Canvas, Color, IPoint, Paint, Rect, Surface};
 use skulpin::CoordinateSystemHelper;
 
-pub struct Game {
+use specs::{Builder, World, WorldExt, Entity, Dispatcher};
+use specs_physics::{
+    colliders::Shape,
+    nalgebra::{Isometry3, Vector3},
+    nphysics::{algebra::Velocity3, object::BodyStatus},
+    physics_dispatcher,
+    PhysicsBodyBuilder,
+    PhysicsColliderBuilder,
+    SimplePosition,
+};
+
+pub struct Game<'a> {
     surface: Option<Surface>,
+    pub world: World,
+    pub entity: Entity,
+    pub dispatcher: Dispatcher<'a, 'a>,
 }
 
-impl Game {
+impl Game<'_> {
     pub fn new() -> Self {
-        Self { surface: None }
+        // initialise the Specs world; this will contain our Resources and Entities
+        let mut world = World::new();
+
+        // create the dispatcher containing all relevant Systems; alternatively to using
+        // the convenience function you can add all required Systems by hand
+        let mut dispatcher = physics_dispatcher::<f32, SimplePosition<f32>>();
+        dispatcher.setup(&mut world);
+
+        // create an Entity with a dynamic PhysicsBody component and a velocity
+        let entity = world
+            .create_entity()
+            .with(SimplePosition::<f32>(Isometry3::<f32>::translation(
+                1.0, 67.0, 1.0,
+            )))
+            .with(
+                PhysicsBodyBuilder::<f32>::from(BodyStatus::Dynamic)
+                    .velocity(Velocity3::linear(1.0, 0.0, 0.0))
+                    .build(),
+            )
+            .with(
+                PhysicsColliderBuilder::<f32>::from(Shape::Cuboid {
+                    half_extents: Vector3::new(1.9, 2.0, 1.0),
+                })
+                .margin(0.1)
+                .build(),
+            )
+            .build();
+
+        // create an Entity with a static PhysicsBody component right next to the first
+        // one
+        world
+            .create_entity()
+            .with(SimplePosition::<f32>(Isometry3::<f32>::translation(
+                5.0, 1.0, 1.0,
+            )))
+            .with(PhysicsBodyBuilder::<f32>::from(BodyStatus::Static).build())
+            .with(
+                PhysicsColliderBuilder::<f32>::from(Shape::Cuboid {
+                    half_extents: Vector3::new(1.9, 2.0, 1.0),
+                })
+                .margin(0.1)
+                .build(),
+            )
+            .build();
+
+        // execute the dispatcher
+        dispatcher.dispatch(&world);
+
+        Self { surface: None, world, entity, dispatcher }
+    }
+
+    pub fn update(&mut self) {
     }
 
     pub fn draw(
@@ -39,11 +104,20 @@ impl Game {
         let mut canvas = surface.canvas();
         coordinate_system_helper.use_logical_coordinates(&mut canvas);
 
-        if let Some(rattle) = tail {
-            canvas.draw_rect(rattle, &black_paint);
-        }
-        canvas.draw_rect(self.head, &green_paint);
-        canvas.draw_rect(self.food.location, &white_paint);
+        let pos_storage = self.world.read_storage::<SimplePosition<f32>>();
+        let pos = pos_storage.get(self.entity).unwrap();
+        let black_paint = Paint::new(colors::BLACK, None);
+        let white_paint = Paint::new(colors::WHITE, None);
+
+        let vector = pos.0.translation.vector;
+        let rect = Rect::new(
+            vector.x,
+            vector.y,
+            vector.x + 10.0,
+            vector.y + 10.0
+        );
+
+        canvas.draw_rect(rect, &white_paint);
 
         let image = surface.image_snapshot();
         let window_size = coordinate_system_helper.window_logical_size();

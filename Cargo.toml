@@ -33,6 +33,8 @@ cfg-if = "0.1.10"
 which = "4"
 dirs = "2"
 rand = "0.7"
+specs = "0.16"
+specs-physics = {git = "https://github.com/amethyst/specs-physics.git"}
 
 [dev-dependencies]
 mockall = "0.7.0"

@@ -12,14 +12,13 @@ use log::error;
 
 use super::{Plugin, SdlEventHandler};
 
-pub struct ForkPlugin {
-    game: Game,
+pub struct ForkPlugin<'a> {
+    game: Game<'a>,
 }
 
-impl<'a> Plugin<'a> for ForkPlugin {
+impl<'a> Plugin<'a> for ForkPlugin<'_> {
     fn update(&mut self, window: &'a mut WindowWrapper) -> i32 {
         let scale_factor = (1.0 / Sdl2Window::new(&window.window).scale_factor()) as i32;
-
         0
     }
 
@@ -44,7 +43,7 @@ impl<'a> Plugin<'a> for ForkPlugin {
     }
 }
 
-impl<'a> SdlEventHandler<'a> for GamePlugin {
+impl<'a> SdlEventHandler<'a> for ForkPlugin<'_> {
     fn handle(&mut self, window: &'a mut WindowWrapper, event: &Event) -> i32 {
         match event {
             Event::Quit { .. } => {
@@ -56,7 +55,7 @@ impl<'a> SdlEventHandler<'a> for GamePlugin {
                 ..
             } => match received_keycode {
                 // 0 - up, 1 - left, 2 - down, 3 - right
-                Some(Keycode::RGui) => {
+                Some(Keycode::RShift) => {
                     window.vimming = true;
                     window.renderer.surface = window.snapshot.clone();
                     window.snapshot = None;
@@ -67,16 +66,16 @@ impl<'a> SdlEventHandler<'a> for GamePlugin {
                     return 1;
                 }
                 Some(Keycode::W) => {
-                    self.snake.set_direction(0);
+                    // self.snake.set_direction(0);
                 }
                 Some(Keycode::A) => {
-                    self.snake.set_direction(1);
+                    // self.snake.set_direction(1);
                 }
                 Some(Keycode::S) => {
-                    self.snake.set_direction(2);
+                    // self.snake.set_direction(2);
                 }
                 Some(Keycode::D) => {
-                    self.snake.set_direction(3);
+                    // self.snake.set_direction(3);
                 }
                 _ => {}
             },
@@ -87,7 +86,7 @@ impl<'a> SdlEventHandler<'a> for GamePlugin {
     }
 }
 
-impl<'a> GamePlugin {
+impl<'a> ForkPlugin<'static> {
     pub fn new() -> Self {
         Self { game: Game::new() }
     }
