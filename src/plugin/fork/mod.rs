@@ -1,101 +1,65 @@
-use crate::window::WindowWrapper;
-use skulpin::sdl2::event::Event;
-use skulpin::sdl2::keyboard::Keycode;
-use skulpin::sdl2::EventPump;
-use skulpin::skia_safe::Canvas;
-use skulpin::{CoordinateSystemHelper, Sdl2Window, Window};
+use amethyst::{
+    assets::{PrefabLoader, PrefabLoaderSystemDesc, RonFormat},
+    core::transform::TransformBundle,
+    ecs::prelude::WorldExt,
+    input::{InputBundle, StringBindings},
+    prelude::*,
+    renderer::{
+        plugins::RenderToWindow,
+        rendy::{
+            hal::command::ClearColor,
+            mesh::{Normal, Position, TexCoord},
+        },
+        types::DefaultBackend,
+        RenderingBundle,
+    },
+    ui::{RenderUi, ToNativeWidget, UiBundle, UiCreator, UiTransformData, UiWidget},
+    utils::{application_root_dir, scene::BasicScenePrefab},
+    window::{DisplayConfig, EventLoop},
+};
+use skulpin::winit::event_loop::EventLoopWindowTarget;
 
-mod game;
-use game::*;
+type MyPrefabData = BasicScenePrefab<(Vec<Position>, Vec<Normal>, Vec<TexCoord>)>;
+struct Example;
 
-use log::error;
+impl SimpleState for Example {
+    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        let StateData { world, .. } = data;
+        // Initialise the scene with an object, a light and a camera.
+        let handle = world.exec(|loader: PrefabLoader<'_, MyPrefabData>| {
+            loader.load("prefab/sphere.ron", RonFormat, ())
+        });
+        world.create_entity().with(handle).build();
 
-use super::{Plugin, SdlEventHandler};
-
-pub struct ForkPlugin<'a> {
-    game: Game<'a>,
-}
-
-impl<'a> Plugin<'a> for ForkPlugin<'_> {
-    fn update(&mut self, window: &'a mut WindowWrapper) -> i32 {
-        let scale_factor = (1.0 / Sdl2Window::new(&window.window).scale_factor()) as i32;
-        0
-    }
-
-    fn draw(&mut self, window: &'a mut WindowWrapper) -> i32 {
-        let game = &mut self.game;
-        let sdl_window_wrapper = Sdl2Window::new(&window.window);
-        let error = window
-            .skulpin_renderer
-            .draw(
-                &sdl_window_wrapper,
-                |canvas: &mut Canvas, coordinate_system_helper: CoordinateSystemHelper| {
-                    game.draw(canvas, &coordinate_system_helper);
-                },
-            )
-            .is_err();
-        if error {
-            error!("Render failed. Closing");
-            return -1;
-        }
-
-        0
+        // Load custom UI prefab
+        // world.exec(|mut creator: UiCreator<'_, CustomUi>| {
+        //     // creator.create("ui/custom.ron", ());
+        // });
     }
 }
 
-impl<'a> SdlEventHandler<'a> for ForkPlugin<'_> {
-    fn handle(&mut self, window: &'a mut WindowWrapper, event: &Event) -> i32 {
-        match event {
-            Event::Quit { .. } => {
-                window.handle_quit();
-                window.vimming = true;
-            }
-            Event::KeyDown {
-                keycode: received_keycode,
-                ..
-            } => match received_keycode {
-                // 0 - up, 1 - left, 2 - down, 3 - right
-                Some(Keycode::RShift) => {
-                    window.vimming = true;
-                    window.renderer.surface = window.snapshot.clone();
-                    window.snapshot = None;
-                    window
-                        .window
-                        .set_size(window.cached_size.0, window.cached_size.1)
-                        .unwrap();
-                    return 1;
-                }
-                Some(Keycode::W) => {
-                    // self.snake.set_direction(0);
-                }
-                Some(Keycode::A) => {
-                    // self.snake.set_direction(1);
-                }
-                Some(Keycode::S) => {
-                    // self.snake.set_direction(2);
-                }
-                Some(Keycode::D) => {
-                    // self.snake.set_direction(3);
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        0
-    }
+pub struct ForkPlugin {
 }
 
-impl<'a> ForkPlugin<'static> {
-    pub fn new() -> Self {
-        Self { game: Game::new() }
-    }
+impl ForkPlugin {
+    pub fn new(event_loop: EventLoop<()>) {
+        let app_root = application_root_dir().unwrap();
+        let display_config_path = app_root.join("src/plugin/fork/configs/display.ron");
+        let assets_dir = app_root.join("src/plugin/fork/assets");
+        let display_config = DisplayConfig::load(display_config_path).unwrap();
+        let game_data = GameDataBuilder::default()
+            .with_system_desc(PrefabLoaderSystemDesc::<MyPrefabData>::default(), "", &[])
+            .with_bundle(TransformBundle::new()).unwrap()
+            .with_bundle(InputBundle::<StringBindings>::new()).unwrap()
+            // .with_bundle(UiBundle::<StringBindings, CustomUi>::new()).unwrap()
+            .with_bundle(
+                RenderingBundle::<DefaultBackend>::new(display_config, &event_loop)
+                    .with_plugin(RenderToWindow::new().with_clear(ClearColor {
+                        float32: [0.34, 0.36, 0.52, 1.0],
+                    }))
+            ).unwrap();
 
-    pub fn process_events(&mut self, window: &'a mut WindowWrapper, event_pump: &mut EventPump) {
-        for event in event_pump.poll_iter() {
-            if self.handle(window, &event) != 0 {
-                break;
-            }
-        }
+        let mut game = Application::new(assets_dir, Example, game_data).unwrap();
+        game.run_winit_loop(event_loop);
     }
 }

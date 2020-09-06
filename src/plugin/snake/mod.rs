@@ -10,13 +10,13 @@ use game::*;
 
 use log::error;
 
-use super::{Plugin, SdlEventHandler};
+use super::{SDLPlugin, SDLEventHandler};
 
 pub struct SnakePlugin {
     snake: Snake,
 }
 
-impl<'a> Plugin<'a> for SnakePlugin {
+impl<'a> SDLPlugin<'a> for SnakePlugin {
     fn update(&mut self, window: &'a mut WindowWrapper) -> i32 {
         self.snake.move_all();
         let scale_factor = (1.0 / Sdl2Window::new(&window.window).scale_factor()) as i32;
@@ -49,7 +49,7 @@ impl<'a> Plugin<'a> for SnakePlugin {
     }
 }
 
-impl<'a> SdlEventHandler<'a> for SnakePlugin {
+impl<'a> SDLEventHandler<'a> for SnakePlugin {
     fn handle(&mut self, window: &'a mut WindowWrapper, event: &Event) -> i32 {
         match event {
             Event::Quit { .. } => {
@@ -61,11 +61,10 @@ impl<'a> SdlEventHandler<'a> for SnakePlugin {
                 ..
             } => match received_keycode {
                 // 0 - up, 1 - left, 2 - down, 3 - right
-                Some(Keycode::RGui) => {
+                Some(Keycode::RShift) => {
                     window.vimming = true;
                     window.renderer.surface = window.snapshot.clone();
                     window.snapshot = None;
-                    // REDRAW_SCHEDULER.queue_next_frame();
                     window
                         .window
                         .set_size(window.cached_size.0, window.cached_size.1)

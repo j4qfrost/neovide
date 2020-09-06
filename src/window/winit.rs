@@ -23,6 +23,8 @@ use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
 
+use crate::plugin::fork::ForkPlugin;
+
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct Asset;
@@ -46,7 +48,7 @@ fn handle_new_grid_size(new_size: LogicalSize<u32>, renderer: &Renderer) {
     });
 }
 
-struct WindowWrapper {
+pub struct WindowWrapper {
     window: winit::window::Window,
     skulpin_renderer: SkulpinRenderer,
     renderer: Renderer,
@@ -357,8 +359,9 @@ pub fn initialize_settings() {
 
 pub fn ui_loop() {
     let event_loop = EventLoop::<()>::with_user_event();
+
     let mut window = WindowWrapper::new(&event_loop);
-    event_loop.run(move |e, _window_target, control_flow| {
+    event_loop.run(move |e, window_target, control_flow| {
         let frame_start = Instant::now();
 
         window.synchronize_settings();
@@ -376,7 +379,6 @@ pub fn ui_loop() {
                 ..
             } => {
                 window.handle_quit();
-                *control_flow = ControlFlow::Exit;
             }
             Event::WindowEvent {
                 event: WindowEvent::DroppedFile(path),
@@ -461,4 +463,6 @@ pub fn ui_loop() {
             }
         }
     });
+        let other_event_loop = EventLoop::<()>::with_user_event();
+    ForkPlugin::new(other_event_loop);
 }

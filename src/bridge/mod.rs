@@ -263,7 +263,6 @@ async fn start_process(mut receiver: UnboundedReceiver<UiCommand>) {
 
     SETTINGS.read_initial_values(&nvim).await;
     SETTINGS.setup_changed_listeners(&nvim).await;
-
     nvim.set_option("lazyredraw", Value::Boolean(false))
         .await
         .ok();
