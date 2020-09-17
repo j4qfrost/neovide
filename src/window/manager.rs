@@ -1,5 +1,4 @@
 use log::info;
-
 use skulpin::winit::event::WindowEvent;
 use skulpin::winit::event_loop::{
     ControlFlow, EventLoopClosed, EventLoopProxy, EventLoopWindowTarget,
@@ -12,11 +11,15 @@ use skulpin::{
 use std::collections::HashMap;
 
 #[cfg(feature = "winit")]
-pub trait EventProcessor {
-    fn process_event(&mut self, e: WindowEvent) -> Option<ControlFlow>;
+pub trait NeovideEventProcessor {
+    fn process_event(
+        &mut self,
+        e: WindowEvent,
+        proxy: &EventLoopProxy<NeovideEvent>,
+    ) -> Option<ControlFlow>;
 }
 
-pub trait WindowHandle: EventProcessor {
+pub trait WindowHandle: NeovideEventProcessor {
     fn window(&mut self) -> Window;
     fn set_window(&mut self, window: Window);
     fn logical_size(&self) -> LogicalSize<u32>;
@@ -25,14 +28,14 @@ pub trait WindowHandle: EventProcessor {
     fn draw(&mut self, skulpin_renderer: &mut SkulpinRenderer) -> bool;
 }
 
-pub struct WindowManager<T: 'static + NoopEvent> {
-    windows: HashMap<WindowId, Box<dyn WindowHandle>>,
+pub struct WindowManager {
+    pub windows: HashMap<WindowId, Box<dyn WindowHandle>>,
     renderer: Option<SkulpinRenderer>,
-    proxy: EventLoopProxy<T>,
+    proxy: EventLoopProxy<NeovideEvent>,
 }
 
-impl<T: NoopEvent> WindowManager<T> {
-    pub fn new(proxy: EventLoopProxy<T>) -> Self {
+impl WindowManager {
+    pub fn new(proxy: EventLoopProxy<NeovideEvent>) -> Self {
         Self {
             windows: HashMap::new(),
             renderer: None,
@@ -40,13 +43,13 @@ impl<T: NoopEvent> WindowManager<T> {
         }
     }
 
-    pub fn noop(&self) -> Result<(), EventLoopClosed<T>> {
-        self.proxy.send_event(T::noop())
+    pub fn noop(&self) -> Result<(), EventLoopClosed<NeovideEvent>> {
+        self.proxy.send_event(NeovideEvent::noop())
     }
 
     pub fn handle_event(&mut self, id: WindowId, event: WindowEvent) -> Option<ControlFlow> {
         if let Some(handle) = self.windows.get_mut(&id) {
-            handle.process_event(event)
+            handle.process_event(event, &self.proxy)
         } else {
             None
         }
@@ -69,7 +72,7 @@ impl<T: NoopEvent> WindowManager<T> {
     pub fn create_window<U: 'static + WindowHandle + Default>(
         &mut self,
         title: &str,
-        window_target: &EventLoopWindowTarget<T>,
+        window_target: &EventLoopWindowTarget<NeovideEvent>,
         icon: Option<Icon>,
     ) {
         let mut handle = Box::new(U::default());
@@ -117,6 +120,7 @@ pub trait NoopEvent {
 #[derive(Debug)]
 pub enum NeovideEvent {
     // Pause(WindowId),
+    SwitchHandle(WindowId),
     Noop,
 }
 

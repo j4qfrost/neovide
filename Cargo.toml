@@ -35,6 +35,7 @@ cfg-if = "0.1.10"
 which = "4"
 dirs = "2"
 rand = "0.7"
+legion = "0.3"
 
 [dev-dependencies]
 mockall = "0.7.0"

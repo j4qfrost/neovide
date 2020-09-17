@@ -7,7 +7,7 @@ use skulpin::winit::event::VirtualKeyCode as Keycode;
 use skulpin::winit::event::{
     ElementState, Event, ModifiersState, MouseButton, MouseScrollDelta, StartCause, WindowEvent,
 };
-use skulpin::winit::event_loop::{ControlFlow, EventLoop};
+use skulpin::winit::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use skulpin::winit::window::{Icon, Window};
 use skulpin::{
     winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
@@ -20,6 +20,8 @@ use crate::redraw_scheduler::REDRAW_SCHEDULER;
 use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
+
+use crate::fork::Fork;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -258,8 +260,12 @@ impl WindowHandle for NeovideHandle {
     }
 }
 
-impl EventProcessor for NeovideHandle {
-    fn process_event(&mut self, e: WindowEvent) -> Option<ControlFlow> {
+impl NeovideEventProcessor for NeovideHandle {
+    fn process_event(
+        &mut self,
+        e: WindowEvent,
+        proxy: &EventLoopProxy<NeovideEvent>,
+    ) -> Option<ControlFlow> {
         match e {
             WindowEvent::CloseRequested => {
                 self.handle_quit();
@@ -278,8 +284,13 @@ impl EventProcessor for NeovideHandle {
                     self.ignore_text_this_frame = false;
                 }
             }
-            WindowEvent::ModifiersChanged(m) => {
+            WindowEvent::ModifiersChanged(mut m) => {
                 self.modifiers.set(m, true);
+                m.insert(ModifiersState::LOGO);
+                if m.is_all() {
+                    let window_id = self.window.as_ref().unwrap().id();
+                    proxy.send_event(NeovideEvent::SwitchHandle(window_id));
+                }
             }
             WindowEvent::CursorMoved { position, .. } => self.handle_pointer_motion(position),
             WindowEvent::MouseWheel {
@@ -315,8 +326,8 @@ impl EventProcessor for NeovideHandle {
 }
 
 #[derive(Clone)]
-struct WindowSettings {
-    refresh_rate: u64,
+pub struct WindowSettings {
+    pub refresh_rate: u64,
     transparency: f32,
     no_idle: bool,
     fullscreen: bool,
@@ -359,7 +370,7 @@ pub fn ui_loop() {
 
     let event_loop = EventLoop::<NeovideEvent>::with_user_event();
     let event_loop_proxy = event_loop.create_proxy();
-    let mut window_manager: WindowManager<NeovideEvent> = WindowManager::new(event_loop_proxy);
+    let mut window_manager = WindowManager::new(event_loop_proxy);
 
     info!("renderer created");
 
@@ -381,6 +392,14 @@ pub fn ui_loop() {
                 if let Some(cf) = window_manager.handle_event(window_id, event) {
                     *control_flow = cf;
                 }
+            }
+            Event::UserEvent(NeovideEvent::SwitchHandle(window_id)) => {
+                println!("test");
+                let mut handle = Fork::default();
+                let mut old_handle = window_manager.windows.remove(&window_id).unwrap();
+                handle.set_window(old_handle.window());
+                handle.save_handle(old_handle);
+                window_manager.windows.insert(window_id, Box::new(handle));
             }
             _ => {}
         }

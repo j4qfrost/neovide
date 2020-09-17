@@ -1,9 +1,9 @@
 #[cfg_attr(feature = "sdl2", path = "sdl2.rs")]
 #[cfg_attr(feature = "winit", path = "winit.rs")]
-mod window_wrapper;
+pub mod window_wrapper;
 pub use window_wrapper::*;
 
 #[cfg(feature = "winit")]
-mod manager;
+pub mod manager;
 #[cfg(feature = "winit")]
 pub use manager::*;
