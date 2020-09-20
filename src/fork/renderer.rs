@@ -30,6 +30,8 @@ impl Renderer {
         dt: f32,
         world: &World,
     ) -> bool {
+        gpu_canvas.clear(Color::from_argb(0, 0, 0, 255));
+
         let mut surface = self.surface.take().unwrap_or_else(|| {
             let mut context = gpu_canvas.gpu_context().unwrap();
             let budgeted = Budgeted::Yes;
