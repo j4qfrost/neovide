@@ -37,8 +37,8 @@ dirs = "2"
 rand = "0.7"
 
 legion = "0.3"
-nalgebra   = "0.21"
-ncollide2d = "0.23"
+nalgebra   = "0.22"
+ncollide2d = "0.24"
 nphysics2d = "0.17"
 
 [dev-dependencies]

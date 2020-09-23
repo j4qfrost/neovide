@@ -289,7 +289,9 @@ impl NeovideEventProcessor for NeovideHandle {
                 m.insert(ModifiersState::LOGO);
                 if m.is_all() {
                     let window_id = self.window.as_ref().unwrap().id();
-                    proxy.send_event(NeovideEvent::SwitchHandle(window_id));
+                    if let Err(e) = proxy.send_event(NeovideEvent::SwitchHandle(window_id)) {
+                        error!("{:?}", e);
+                    }
                 }
             }
             WindowEvent::CursorMoved { position, .. } => self.handle_pointer_motion(position),
@@ -394,7 +396,6 @@ pub fn ui_loop() {
                 }
             }
             Event::UserEvent(NeovideEvent::SwitchHandle(window_id)) => {
-                println!("test");
                 let mut handle = Fork::default();
                 let mut old_handle = window_manager.windows.remove(&window_id).unwrap();
                 handle.set_window(old_handle.window());

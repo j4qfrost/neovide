@@ -1,22 +1,16 @@
-use rand::Rng;
-use std::collections::LinkedList;
-
-use super::game::Position;
-use legion::*;
-use skulpin::skia_safe::gpu::SurfaceOrigin;
-use skulpin::skia_safe::{colors, Budgeted, Canvas, Color, IPoint, Paint, Rect, Surface};
+use super::game::*;
+use super::physics::*;
+use skulpin::skia_safe::{colors, matrix, paint, Canvas, Color, Color4f, Paint, Point, Rect};
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::CoordinateSystemHelper;
 
 pub struct Renderer {
-    surface: Option<Surface>,
     pub logical_size: LogicalSize<u32>,
 }
 
 impl Default for Renderer {
     fn default() -> Self {
         Self {
-            surface: None,
             logical_size: LogicalSize::new(640, 480),
         }
     }
@@ -25,59 +19,61 @@ impl Default for Renderer {
 impl Renderer {
     pub fn draw(
         &mut self,
-        gpu_canvas: &mut Canvas,
+        canvas: &mut Canvas,
         coordinate_system_helper: &CoordinateSystemHelper,
-        dt: f32,
-        world: &World,
+        game: &Game,
     ) -> bool {
-        gpu_canvas.clear(Color::from_argb(0, 0, 0, 255));
+        let x_half_extents = GROUND_HALF_EXTENTS_WIDTH * 1.5;
+        let y_half_extents = x_half_extents
+            / (coordinate_system_helper.surface_extents().width as f32
+                / coordinate_system_helper.surface_extents().height as f32);
 
-        let mut surface = self.surface.take().unwrap_or_else(|| {
-            let mut context = gpu_canvas.gpu_context().unwrap();
-            let budgeted = Budgeted::Yes;
-            let image_info = gpu_canvas.image_info();
-            let surface_origin = SurfaceOrigin::TopLeft;
-            Surface::new_render_target(
-                &mut context,
-                budgeted,
-                &image_info,
-                None,
-                surface_origin,
-                None,
-                None,
+        coordinate_system_helper
+            .use_visible_range(
+                canvas,
+                Rect {
+                    left: -x_half_extents,
+                    right: x_half_extents,
+                    top: y_half_extents + 1.0,
+                    bottom: -y_half_extents + 1.0,
+                },
+                matrix::ScaleToFit::Center,
             )
-            .expect("Could not create surface")
-        });
+            .unwrap();
 
-        let mut canvas = surface.canvas();
-        coordinate_system_helper.use_logical_coordinates(&mut canvas);
+        // Generally would want to clear data every time we draw
+        canvas.clear(Color::from_argb(0, 0, 0, 255));
 
-        let green_paint = Paint::new(colors::GREEN, None);
-        let mut query = <&Position>::query();
+        // Make a color to draw with
+        let mut paint = Paint::new(Color4f::new(0.0, 1.0, 0.0, 1.0), None);
+        paint.set_anti_alias(true);
+        paint.set_style(paint::Style::Stroke);
+        paint.set_stroke_width(0.02);
 
-        for position in query.iter(world) {
-            let rect = Rect {
-                left: position.x,
-                top: position.y,
-                right: position.x + 10.0,
-                bottom: position.y + 10.0,
-            };
-            canvas.draw_rect(rect, &green_paint);
-            println!("{:?}", position);
-        }
-
-        let image = surface.image_snapshot();
-        let window_size = coordinate_system_helper.window_logical_size();
-        let image_destination = Rect::new(
-            0.0,
-            0.0,
-            window_size.width as f32,
-            window_size.height as f32,
+        canvas.draw_rect(
+            Rect {
+                left: -GROUND_HALF_EXTENTS_WIDTH,
+                top: 0.0,
+                right: GROUND_HALF_EXTENTS_WIDTH,
+                bottom: -GROUND_THICKNESS,
+            },
+            &paint,
         );
 
-        let black_paint = Paint::new(colors::BLACK, None);
-        gpu_canvas.draw_image_rect(image, None, &image_destination, &black_paint);
-        self.surface = Some(surface);
+        for (_i, circle_body) in game.physics.circle_body_handles.iter().enumerate() {
+            let position = game
+                .physics
+                .bodies
+                .rigid_body(*circle_body)
+                .unwrap()
+                .position()
+                .translation;
+            let paint = Paint::new(colors::GREEN, None);
+
+            canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
+        }
+
+        coordinate_system_helper.use_logical_coordinates(canvas);
 
         true
     }

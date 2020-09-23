@@ -6,6 +6,7 @@ mod settings;
 mod bridge;
 mod editor;
 mod error_handling;
+#[cfg(feature = "winit")]
 mod fork;
 mod redraw_scheduler;
 mod renderer;
