@@ -23,7 +23,7 @@ rmpv = "0.4.4"
 rust-embed = { version = "5.2.0", features = ["debug-embed"] }
 image = "0.22.3"
 nvim-rs = { git = "https://github.com/kethku/nvim-rs", features = [ "use_tokio" ] }
-tokio = { version = "0.2.9", features = [ "blocking", "process", "time" ] }
+tokio = { version = "0.2.22", features = [ "blocking", "process", "time" ] }
 async-trait = "0.1.18"
 lazy_static = "1.4.0"
 unicode-segmentation = "1.6.0"
@@ -40,6 +40,13 @@ legion = "0.3"
 nalgebra   = "0.22"
 ncollide2d = "0.24"
 nphysics2d = "0.17"
+futures = "0.3"
+
+deno_core = "0.58"
+deno_fetch = "0.1.0"
+
+rustpython-vm = { git = "https://github.com/j4qfrost/RustPython.git" }
+rustpython-compiler = { git = "https://github.com/j4qfrost/RustPython.git" }
 
 [dev-dependencies]
 mockall = "0.7.0"
