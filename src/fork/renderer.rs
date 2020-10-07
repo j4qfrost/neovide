@@ -1,8 +1,12 @@
 use super::game::*;
 use super::physics::*;
+use legion::IntoQuery;
+use nphysics2d::object::{Body, BodySet, DefaultBodyHandle};
 use skulpin::skia_safe::{colors, matrix, paint, Canvas, Color, Color4f, Paint, Point, Rect};
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::CoordinateSystemHelper;
+
+use super::game::MachineType;
 
 pub struct Renderer {
     pub logical_size: LogicalSize<u32>,
@@ -60,17 +64,17 @@ impl Renderer {
             &paint,
         );
 
-        for (_i, circle_body) in game.physics.circle_body_handles.iter().enumerate() {
-            let position = game
-                .physics
-                .bodies
-                .rigid_body(*circle_body)
-                .unwrap()
-                .position()
-                .translation;
-            let paint = Paint::new(colors::GREEN, None);
+        // construct a query from a "view tuple"
+        let mut query = <(&DefaultBodyHandle, &MachineType)>::query();
 
-            canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
+        // this time we have &Velocity and &mut Position
+        for (handle, machine_type) in query.iter(&game.world) {
+            let body = game.physics.bodies.rigid_body(*handle).unwrap();
+            if body.is_active() {
+                match machine_type {
+                    MachineType::Sphere(machine) => machine.draw(canvas, body.position()),
+                }
+            }
         }
 
         coordinate_system_helper.use_logical_coordinates(canvas);

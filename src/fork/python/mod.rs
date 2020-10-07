@@ -1,23 +1,22 @@
-use rustpython_vm::{ Interpreter, VirtualMachine, InitParameter };
+use rustpython_compiler::error::CompileError;
+use rustpython_compiler::mode::Mode;
+use rustpython_vm::function::PyFuncArgs;
 use rustpython_vm::obj::objcode::PyCodeRef;
 use rustpython_vm::obj::objint;
-use rustpython_vm::pyobject::PyResult;
 use rustpython_vm::pyobject::PyObjectPayload;
+use rustpython_vm::pyobject::PyResult;
 use rustpython_vm::pyobject::PyValue;
-use rustpython_vm::function::PyFuncArgs;
-use rustpython_compiler::mode::Mode;
-use rustpython_compiler::error::CompileError;
+use rustpython_vm::{InitParameter, Interpreter, VirtualMachine};
 
-use std::fs::File;
-use std::io::BufReader;
-use std::io::prelude::*;
-use std::path::PathBuf;
 use std::borrow::Borrow;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Python {
     runtime: Interpreter,
-
 }
 
 impl Python {
@@ -31,9 +30,10 @@ impl Python {
         let mut contents = String::new();
         buf_reader.read_to_string(&mut contents).unwrap();
 
-        let hello = self.runtime.enter(|vm| {
-            vm.compile(&contents, Mode::Exec, file_path.to_string())
-        }).unwrap();
+        let hello = self
+            .runtime
+            .enter(|vm| vm.compile(&contents, Mode::Exec, file_path.to_string()))
+            .unwrap();
 
         self.runtime.enter(|vm| {
             let scope = vm.new_scope_with_builtins();
@@ -45,7 +45,7 @@ impl Python {
     }
 }
 
-fn test_func( mut py_args: PyFuncArgs, vm: &VirtualMachine) -> PyResult {
+fn test_func(mut py_args: PyFuncArgs, vm: &VirtualMachine) -> PyResult {
     let five = vm.ctx.new_int(5);
     let ret = vm._add(&py_args.shift(), &five);
     println!("{:?}", 5);
