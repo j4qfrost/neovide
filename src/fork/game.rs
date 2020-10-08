@@ -7,12 +7,36 @@ use image;
 // use super::deno::Deno;
 use super::python::Python;
 
+use cache_macro::cache;
+use image::GenericImageView;
+use lru::LruCache;
+use nier::*;
+use nier_macros::*;
+use nphysics2d::math::Isometry;
+use skulpin::skia_safe::colors;
+use skulpin::skia_safe::AlphaType;
+use skulpin::skia_safe::Canvas;
+use skulpin::skia_safe::ColorInfo;
+use skulpin::skia_safe::ColorSpace;
+use skulpin::skia_safe::ColorType;
+use skulpin::skia_safe::Data;
+use skulpin::skia_safe::ISize;
+use skulpin::skia_safe::Image;
+use skulpin::skia_safe::ImageInfo;
+use skulpin::skia_safe::Paint;
+use skulpin::skia_safe::Point;
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::path::PathBuf;
+// // Used for physics
+use na::Vector2;
+
 pub struct Game {
     pub world: World,
     pub physics: Physics,
     pub nsteps: usize,
     pub python: Python,
-    // controlled_character: Character,
+    character_handle: Entity,
 }
 
 impl Default for Game {
@@ -23,13 +47,14 @@ impl Default for Game {
         python.init();
 
         let level = Level::new();
-        level.init(&mut world, &mut physics);
+        let character_handle = level.init(&mut world, &mut physics);
 
         Self {
             world,
             physics,
             nsteps: 3,
             python,
+            character_handle,
         }
     }
 }
@@ -39,7 +64,6 @@ impl Default for Game {
 use nalgebra as na;
 
 // Used for physics
-use na::Vector2;
 use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
 use nphysics2d::force_generator::DefaultForceGeneratorSet;
 use nphysics2d::joint::DefaultJointConstraintSet;
@@ -47,6 +71,8 @@ use nphysics2d::object::{
     BodyPartHandle, ColliderDesc, DefaultBodyHandle, DefaultBodySet, DefaultColliderSet, Ground,
     RigidBodyDesc,
 };
+
+use skulpin::winit::event::ElementState;
 
 impl Game {
     fn load_level(&mut self, level: Level) {
@@ -70,7 +96,7 @@ impl Level {
         }
     }
 
-    fn init(&self, world: &mut World, physics: &mut Physics) {
+    fn init(&self, world: &mut World, physics: &mut Physics) -> Entity {
         // A rectangle that the balls will fall on
         let ground_shape = ShapeHandle::new(Cuboid::new(Vector2::new(
             GROUND_HALF_EXTENTS_WIDTH,
@@ -88,46 +114,82 @@ impl Level {
         // Add the collider to the collider set.
         physics.colliders.insert(ground_collider);
 
-        let ball_shape_handle = ShapeHandle::new(Ball::new(BALL_RADIUS));
+        // let ball_shape_handle = ShapeHandle::new(Ball::new(BALL_RADIUS));
 
         let shift = (BALL_RADIUS + ColliderDesc::<f32>::default_margin()) * 2.0;
         let centerx = shift * (BALL_COUNT as f32) / 2.0;
         let centery = shift / 2.0;
         let height = 3.0;
 
-        for i in 0usize..BALL_COUNT {
-            for j in 0usize..BALL_COUNT {
-                let x = i as f32 * shift - centerx;
-                let y = j as f32 * shift + centery + height;
+        // for i in 0usize..BALL_COUNT {
+        //     for j in 0usize..BALL_COUNT {
+        //         let x = i as f32 * shift - centerx;
+        //         let y = j as f32 * shift + centery + height;
 
-                // Build the rigid body.
-                let rigid_body = RigidBodyDesc::new().translation(Vector2::new(x, y)).build();
+        //         // Build the rigid body.
+        //         let rigid_body = RigidBodyDesc::new().translation(Vector2::new(x, y)).build();
 
-                // Insert the rigid body to the body set.
-                let rigid_body_handle = physics.bodies.insert(rigid_body);
+        //         // Insert the rigid body to the body set.
+        //         let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-                // Build the collider.
-                let ball_collider = ColliderDesc::new(ball_shape_handle.clone())
-                    .density(1.0)
-                    .build(BodyPartHandle(rigid_body_handle, 0));
+        //         // Build the collider.
+        //         let ball_collider = ColliderDesc::new(ball_shape_handle.clone())
+        //             .density(1.0)
+        //             .build(BodyPartHandle(rigid_body_handle, 0));
 
-                // Insert the collider to the body set.
-                physics.colliders.insert(ball_collider);
+        //         // Insert the collider to the body set.
+        //         physics.colliders.insert(ball_collider);
 
-                world.push((rigid_body_handle, MachineType::Sphere(Sphere::default())));
-            }
-        }
+        //         world.push((rigid_body_handle, MachineType::Sphere(Sphere::default())));
+        //     }
+        // }
+
+        let character = Character::default();
+        let clips = character.clips().unwrap();
+        // Build the rigid body.
+        let rigid_body = RigidBodyDesc::new().translation(Vector2::y()).build();
+
+        // Insert the rigid body to the body set.
+        let rigid_body_handle = physics.bodies.insert(rigid_body);
+
+        let character_rect = &clips.get("idle").unwrap()[0];
+
+        let box_shape_handle = ShapeHandle::new(Cuboid::new(Vector2::new(
+            // character_rect.size.width as f32 / 2.0,
+            // character_rect.size.height as f32 / 2.0,
+            0.1, 0.1,
+        )));
+
+        // Build the collider.
+        let box_collider = ColliderDesc::new(box_shape_handle.clone())
+            .density(1.0)
+            .build(BodyPartHandle(rigid_body_handle, 0));
+
+        // Insert the collider to the body set.
+        physics.colliders.insert(box_collider);
+
+        world.push((
+            rigid_body_handle,
+            MachineType::Character(Character::default()),
+            MovementInput::default(),
+        ))
     }
 }
 
-use nphysics2d::math::Isometry;
-use skulpin::skia_safe::colors;
-use skulpin::skia_safe::Canvas;
-use skulpin::skia_safe::Paint;
-use skulpin::skia_safe::Point;
-
 pub trait Sprite {
+    fn source(&self) -> Option<image::DynamicImage> {
+        None
+    }
+
+    fn clips(&self) -> Option<HashMap<String, Vec<Rect>>> {
+        None
+    }
+
     fn draw(&self, canvas: &mut Canvas, isometry: &Isometry<f32>);
+}
+
+pub trait Animate {
+    fn animate(&mut self);
 }
 
 pub struct Sphere {
@@ -150,119 +212,217 @@ impl Sprite for Sphere {
 }
 
 pub enum MachineType {
-    // Character(Character),
+    Character(Character),
     Sphere(Sphere),
 }
 
-// impl Game {
-//     pub fn send(keycode: Option<Keycode>) {
-//         match keycode.unwrap() {
-//             Keycode::Left => controlled_character.state = controlled_character.delta(controlled_character.state, CharacterInput::Left),
-//             Keycode::Up => controlled_character.state = controlled_character.delta(controlled_character.state, CharacterInput::Up),
-//             Keycode::Right => controlled_character.state = controlled_character.delta(controlled_character.state, CharacterInput::Right),
-//             Keycode::Down => controlled_character.state = controlled_character.delta(controlled_character.state, CharacterInput::Down),
-//             _ => {},
-//         }
-//     }
+#[derive(Default)]
+pub struct MovementInput {}
 
-//     pub fn interrupt(keycode: Option<Keycode>) {
-//         println!("{:?}", keycode);
-//         controlled_character.state = controlled_character.delta(controlled_character.state, CharacterInput::Interrupt);
-//     }
-// }
+impl MovementInput {
+    pub fn process(keycode: Option<Keycode>, controlled_character: &mut Character) {
+        match keycode.unwrap() {
+            Keycode::Left => {
+                controlled_character.state =
+                    Character::delta(&controlled_character.state, CharacterInput::Left).unwrap()
+            }
+            Keycode::Right => {
+                controlled_character.state =
+                    Character::delta(&controlled_character.state, CharacterInput::Right).unwrap()
+            }
+            _ => {}
+        }
+    }
+    pub fn interrupt(keycode: Option<Keycode>, controlled_character: &mut Character) {
+        println!("{:?}", keycode);
+        controlled_character.state =
+            Character::delta(&controlled_character.state, CharacterInput::Interrupt).unwrap();
+        controlled_character.ticks = 0;
+    }
+}
 
-// use std::collections::HashMap;
-// use std::hash::Hash;
+impl Game {
+    pub fn send(&mut self, keycode: Option<Keycode>, key_state: ElementState) {
+        // construct a query from a "view tuple"
+        let mut query = <(&MovementInput, &mut MachineType)>::query();
+        if let Ok((_, machine_type)) = query.get_mut(&mut self.world, self.character_handle) {
+            match machine_type {
+                MachineType::Character(machine) => {
+                    if key_state == ElementState::Pressed {
+                        MovementInput::process(keycode, machine);
+                    } else {
+                        MovementInput::interrupt(keycode, machine);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
 
-// struct Rect {
-//     pub x: u32,
-//     pub y: u32,
-//     pub w: u32,
-//     pub h: u32,
-// }
+#[derive(Clone)]
+pub struct Rect {
+    pub x: i32,
+    pub y: i32,
+    pub size: ISize,
+}
 
-// impl Rect {
-//     pub fn new(x: u32, y: u32, w: u32, h: u32) -> Self {
-//         Self {
-//             x, y, w, h
-//         }
-//     }
-// }
+impl Rect {
+    pub fn new(x: i32, y: i32, w: i32, h: i32) -> Self {
+        let size = ISize::new(w, h);
+        Self { x, y, size }
+    }
+}
 
-// use nier::*;
-// use nier_macros::*;
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
+pub enum CharacterState {
+    Idle,
+    RunningLeft,
+    RunningRight,
+}
 
-// use nalgebra as na;
+#[derive(Debug, Copy, Clone)]
+pub enum CharacterInput {
+    Left,
+    Right,
+    Interrupt,
+}
 
-// // Used for physics
-// use na::Vector2;
+#[derive(Automaton)]
+#[nier(state = "CharacterState")]
+pub struct Character {
+    source_path: String,
+    pub ticks: u32,
+    pub state: CharacterState,
+}
 
-// #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone, State)]
-// enum CharacterState {
-//     Idle,
-//     Running(Vector2),
-// }
+impl Default for Character {
+    fn default() -> Self {
+        let mut display_root = PathBuf::new();
+        display_root.push(env!("CARGO_MANIFEST_DIR"));
+        display_root.push("src/fork/res/adventurer-Sheet.png");
+        let source_path = display_root.to_str().unwrap().to_string();
+        Self {
+            source_path,
+            ticks: 0,
+            state: CharacterState::Idle,
+        }
+    }
+}
 
-// #[derive(Debug, Copy, Clone, Alphabet)]
-// enum CharacterInput {
-//     Left,
-//     Up,
-//     Right,
-//     Down,
-//     Interrupt,
-// }
+impl Deterministic<CharacterState, CharacterInput> for Character {
+    fn initial() -> CharacterState {
+        CharacterState::Idle
+    }
 
-// #[derive(Automaton)]
-// #[nier(state = "CharacterState")]
-// struct Character {
-//     sprite_sheet: SpriteSheet,
-//     pub state: CharacterState,
-// }
+    fn delta(
+        state: &CharacterState,
+        input: CharacterInput,
+    ) -> Result<CharacterState, Reject<CharacterState, CharacterInput>> {
+        match (state, input) {
+            (_, CharacterInput::Left) => Ok(CharacterState::RunningLeft),
+            (_, CharacterInput::Right) => Ok(CharacterState::RunningRight),
+            (_, CharacterInput::Interrupt) => Ok(CharacterState::Idle),
+        }
+    }
+}
 
-// impl Deterministic<CharacterState, CharacterInput> for Character {
-//     fn initial() -> CharacterState {
-//         CharacterState::Idle
-//     }
+#[cache(LruCache : LruCache::new(1))]
+fn source_character(source_path: String) -> image::DynamicImage {
+    image::open(source_path).unwrap()
+}
 
-//     fn delta(state: &CharacterState, input: CharacterInput) -> Result<CharacterState, Reject<CharacterState, CharacterInput>> {
-//         match (state, input) {
-//             (_, CharacterInput::Left) => Ok(CharacterState::Running(-Vector2::x())),
-//             (_, CharacterInput::Up) => Ok(CharacterState::Running(Vector2::y())),
-//             (_, CharacterInput::Right) => Ok(CharacterState::Running(Vector2::x())),
-//             (_, CharacterInput::Down) => Ok(CharacterState::Running(-Vector2::y())),
-//             (_, CharacterInput::Interrupt) => Ok(CharacterState::Idle),
-//         }
-//     }
-// }
+#[cache(LruCache : LruCache::new(1))]
+fn clips_character(source_path: String) -> HashMap<String, Vec<Rect>> {
+    let img = source_character(source_path);
+    let (w, h) = img.dimensions();
+    let clip_w = w as i32 / 7;
+    let clip_h = h as i32 / 11;
 
-// trait Animate: Deterministic<S, I> {
-//     fn consume(&mut self, input: I);
-//     fn update();
-//     fn draw();
-// }
+    let mut clips = HashMap::new();
+    // Idle
+    let idle_clips = vec![
+        Rect::new(0, 0, clip_w, clip_h),
+        Rect::new(clip_w, 0, clip_w, clip_h),
+        Rect::new(clip_w * 2, 0, clip_w, clip_h),
+        Rect::new(clip_w * 3, 0, clip_w, clip_h),
+    ];
+    clips.insert("idle".to_string(), idle_clips);
 
-// impl Animate<CharacterState, CharacterInput> for Character {
-//     fn consume(&mut self, input: I) {
-//         self.state = self.delta(&self.state, input);
-//     }
+    // Running
+    let running_clips = vec![
+        Rect::new(clip_w * 4, 0, clip_w, clip_h),
+        Rect::new(clip_w * 5, 0, clip_w, clip_h),
+        Rect::new(clip_w * 6, 0, clip_w, clip_h),
+        Rect::new(0, clip_h, clip_w, clip_h),
+        Rect::new(clip_w, clip_h, clip_w, clip_h),
+        Rect::new(clip_w * 2, clip_h, clip_w, clip_h),
+        Rect::new(clip_w * 3, clip_h, clip_w, clip_h),
+        Rect::new(clip_w * 4, clip_h, clip_w, clip_h),
+        Rect::new(clip_w * 5, clip_h, clip_w, clip_h),
+        Rect::new(clip_w * 6, clip_h, clip_w, clip_h),
+        Rect::new(0, clip_h, clip_w * 2, clip_h),
+        Rect::new(clip_w, clip_h, clip_w * 2, clip_h),
+    ];
+    clips.insert("running".to_string(), running_clips);
 
-//     fn update(&self) {
+    clips
+}
 
-//     }
-// }
+impl Sprite for Character {
+    fn source(&self) -> Option<image::DynamicImage> {
+        Some(source_character(self.source_path.clone()))
+    }
 
-// struct SpriteSheet {
-//     source: image::RgbaImage,
-//     sprites: HashMap<dyn State, Rect>,
-// }
+    fn clips(&self) -> Option<HashMap<String, Vec<Rect>>> {
+        Some(clips_character(self.source_path.clone()))
+    }
 
-// impl SpriteSheet {
-//     pub fn new(file_name: String) -> Self {
-//         let source = image::load(file_name).unwrap();
+    fn draw(&self, canvas: &mut Canvas, isometry: &Isometry<f32>) {
+        let source = source_character(self.source_path.clone());
+        let clips = clips_character(self.source_path.clone());
 
-//         Self {
-//             source,
-//             sprites: HashMap::new(),
-//         }
-//     }
-// }
+        let clip = {
+            let anim = match self.state {
+                CharacterState::Idle => clips.get("idle").unwrap(),
+                CharacterState::RunningLeft | CharacterState::RunningRight => {
+                    clips.get("running").unwrap()
+                }
+            };
+            &anim[self.ticks as usize]
+        };
+        let clipped = source
+            .crop_imm(
+                clip.x as u32,
+                clip.y as u32,
+                clip.size.width as u32,
+                clip.size.height as u32,
+            )
+            .to_bytes();
+        let color_info = ColorInfo::new(
+            ColorType::RGBA8888,
+            AlphaType::Unpremul,
+            ColorSpace::new_srgb(),
+        );
+        let img_info = ImageInfo::from_color_info(clip.size, color_info);
+        let data = unsafe { Data::new_bytes(&clipped) };
+
+        let img = Image::from_raster_data(&img_info, data, clip.size.width as usize * 4).unwrap();
+        let position = isometry.translation;
+        let paint = Paint::new(colors::GREEN, None);
+
+        println!("{:?}", position);
+        // canvas.draw_image(img, Point::new(position.x, position.y), Some(&paint));
+        canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
+    }
+}
+
+impl Animate for Character {
+    fn animate(&mut self) {
+        let states = match self.state {
+            CharacterState::Idle => 4,
+            CharacterState::RunningLeft | CharacterState::RunningRight => 12,
+        };
+        self.ticks = (self.ticks + 1) % states;
+    }
+}

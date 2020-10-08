@@ -70,10 +70,9 @@ impl Renderer {
         // this time we have &Velocity and &mut Position
         for (handle, machine_type) in query.iter(&game.world) {
             let body = game.physics.bodies.rigid_body(*handle).unwrap();
-            if body.is_active() {
-                match machine_type {
-                    MachineType::Sphere(machine) => machine.draw(canvas, body.position()),
-                }
+            match machine_type {
+                MachineType::Sphere(machine) => machine.draw(canvas, body.position()),
+                MachineType::Character(machine) => machine.draw(canvas, body.position()),
             }
         }
 

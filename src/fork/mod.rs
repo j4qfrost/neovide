@@ -45,11 +45,7 @@ impl NeovideEventProcessor for Fork {
             }
             // WindowEvent::DroppedFile(path) => {}
             WindowEvent::KeyboardInput { input, .. } => {
-                if input.state == ElementState::Pressed {
-                    // game.send(interrupt.virtual_keycode);
-                } else {
-                    // game.interrupt(interrupt.virtual_keycode);
-                }
+                self.game.send(input.virtual_keycode, input.state);
             }
             WindowEvent::ModifiersChanged(m) => {
                 self.modifiers.set(m, true);
