@@ -46,7 +46,7 @@ impl Renderer {
             .unwrap();
 
         // Generally would want to clear data every time we draw
-        canvas.clear(Color::from_argb(0, 0, 0, 255));
+        canvas.clear(Color::from_argb(0, 0, 0, 0));
 
         // Make a color to draw with
         let mut paint = Paint::new(Color4f::new(0.0, 1.0, 0.0, 1.0), None);

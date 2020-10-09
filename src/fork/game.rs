@@ -18,11 +18,13 @@ use skulpin::skia_safe::AlphaType;
 use skulpin::skia_safe::Canvas;
 use skulpin::skia_safe::ColorInfo;
 use skulpin::skia_safe::ColorSpace;
+use skulpin::skia_safe::canvas::SrcRectConstraint;
 use skulpin::skia_safe::ColorType;
 use skulpin::skia_safe::Data;
 use skulpin::skia_safe::ISize;
 use skulpin::skia_safe::Image;
 use skulpin::skia_safe::ImageInfo;
+use skulpin::skia_safe::Rect;
 use skulpin::skia_safe::Paint;
 use skulpin::skia_safe::Point;
 use std::collections::HashMap;
@@ -260,20 +262,6 @@ impl Game {
     }
 }
 
-#[derive(Clone)]
-pub struct Rect {
-    pub x: i32,
-    pub y: i32,
-    pub size: ISize,
-}
-
-impl Rect {
-    pub fn new(x: i32, y: i32, w: i32, h: i32) -> Self {
-        let size = ISize::new(w, h);
-        Self { x, y, size }
-    }
-}
-
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
 pub enum CharacterState {
     Idle,
@@ -336,33 +324,33 @@ fn source_character(source_path: String) -> image::DynamicImage {
 fn clips_character(source_path: String) -> HashMap<String, Vec<Rect>> {
     let img = source_character(source_path);
     let (w, h) = img.dimensions();
-    let clip_w = w as i32 / 7;
-    let clip_h = h as i32 / 11;
+    let clip_w = w as f32 / 7.0;
+    let clip_h = h as f32 / 11.0;
 
     let mut clips = HashMap::new();
     // Idle
     let idle_clips = vec![
-        Rect::new(0, 0, clip_w, clip_h),
-        Rect::new(clip_w, 0, clip_w, clip_h),
-        Rect::new(clip_w * 2, 0, clip_w, clip_h),
-        Rect::new(clip_w * 3, 0, clip_w, clip_h),
+        Rect::from_xywh(0.0, 0.0, clip_w, clip_h),
+        Rect::from_xywh(clip_w, 0.0, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 2.0, 0.0, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 3.0, 0.0, clip_w, clip_h),
     ];
     clips.insert("idle".to_string(), idle_clips);
 
     // Running
     let running_clips = vec![
-        Rect::new(clip_w * 4, 0, clip_w, clip_h),
-        Rect::new(clip_w * 5, 0, clip_w, clip_h),
-        Rect::new(clip_w * 6, 0, clip_w, clip_h),
-        Rect::new(0, clip_h, clip_w, clip_h),
-        Rect::new(clip_w, clip_h, clip_w, clip_h),
-        Rect::new(clip_w * 2, clip_h, clip_w, clip_h),
-        Rect::new(clip_w * 3, clip_h, clip_w, clip_h),
-        Rect::new(clip_w * 4, clip_h, clip_w, clip_h),
-        Rect::new(clip_w * 5, clip_h, clip_w, clip_h),
-        Rect::new(clip_w * 6, clip_h, clip_w, clip_h),
-        Rect::new(0, clip_h, clip_w * 2, clip_h),
-        Rect::new(clip_w, clip_h, clip_w * 2, clip_h),
+        Rect::from_xywh(clip_w * 4.0, 0.0, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 5.0, 0.0, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 6.0, 0.0, clip_w, clip_h),
+        Rect::from_xywh(0.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 2.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 3.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 4.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 5.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(clip_w * 6.0, clip_h, clip_w, clip_h),
+        Rect::from_xywh(0.0, clip_h, clip_w * 2.0, clip_h),
+        Rect::from_xywh(clip_w, clip_h, clip_w * 2.0, clip_h),
     ];
     clips.insert("running".to_string(), running_clips);
 
@@ -393,10 +381,10 @@ impl Sprite for Character {
         };
         let clipped = source
             .crop_imm(
-                clip.x as u32,
-                clip.y as u32,
-                clip.size.width as u32,
-                clip.size.height as u32,
+                clip.x() as u32,
+                clip.y() as u32,
+                clip.width() as u32,
+                clip.height() as u32,
             )
             .to_bytes();
         let color_info = ColorInfo::new(
@@ -404,15 +392,17 @@ impl Sprite for Character {
             AlphaType::Unpremul,
             ColorSpace::new_srgb(),
         );
-        let img_info = ImageInfo::from_color_info(clip.size, color_info);
+        let clip_size = ISize::new(clip.width() as i32, clip.height() as i32);
+        let img_info = ImageInfo::from_color_info(clip_size, color_info);
         let data = unsafe { Data::new_bytes(&clipped) };
 
-        let img = Image::from_raster_data(&img_info, data, clip.size.width as usize * 4).unwrap();
+        let img = Image::from_raster_data(&img_info, data, clip.width() as usize * 4).unwrap();
         let position = isometry.translation;
         let paint = Paint::new(colors::GREEN, None);
 
+        let rect = Rect::new(position.x as f32, position.y as f32, 1.0, 1.0);
         println!("{:?}", position);
-        // canvas.draw_image(img, Point::new(position.x, position.y), Some(&paint));
+        canvas.draw_image_rect(img, Some((clip, SrcRectConstraint::Strict)), rect, &paint);
         canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
     }
 }
@@ -425,4 +415,11 @@ impl Animate for Character {
         };
         self.ticks = (self.ticks + 1) % states;
     }
+}
+
+#[derive(Clone)]
+pub struct SpriteSheet {
+    pub bytes: Vec<u8>,
+    pub clips: HashMap<String, Vec<Rect>>,
+    pub dimensions: (i32, i32),
 }
