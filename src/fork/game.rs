@@ -147,7 +147,7 @@ impl Level {
         // }
 
         let character = Character::default();
-        let clips = character.clips().unwrap();
+        let clips = character.source().unwrap().clips;
         // Build the rigid body.
         let rigid_body = RigidBodyDesc::new().translation(Vector2::y()).build();
 
@@ -179,11 +179,7 @@ impl Level {
 }
 
 pub trait Sprite {
-    fn source(&self) -> Option<image::DynamicImage> {
-        None
-    }
-
-    fn clips(&self) -> Option<HashMap<String, Vec<Rect>>> {
+    fn source(&self) -> Option<SpriteSheet> {
         None
     }
 
@@ -316,13 +312,8 @@ impl Deterministic<CharacterState, CharacterInput> for Character {
 }
 
 #[cache(LruCache : LruCache::new(1))]
-fn source_character(source_path: String) -> image::DynamicImage {
-    image::open(source_path).unwrap()
-}
-
-#[cache(LruCache : LruCache::new(1))]
-fn clips_character(source_path: String) -> HashMap<String, Vec<Rect>> {
-    let img = source_character(source_path);
+fn source_character(source_path: String) -> SpriteSheet {
+    let img = image::open(source_path).unwrap();
     let (w, h) = img.dimensions();
     let clip_w = w as f32 / 7.0;
     let clip_h = h as f32 / 11.0;
@@ -353,22 +344,23 @@ fn clips_character(source_path: String) -> HashMap<String, Vec<Rect>> {
         Rect::from_xywh(clip_w, clip_h, clip_w * 2.0, clip_h),
     ];
     clips.insert("running".to_string(), running_clips);
+    let bytes = img.to_bytes();
 
-    clips
+    SpriteSheet {
+        bytes,
+        clips,
+        dimensions: (w as i32, h as i32),
+    }
 }
 
 impl Sprite for Character {
-    fn source(&self) -> Option<image::DynamicImage> {
+    fn source(&self) -> Option<SpriteSheet> {
         Some(source_character(self.source_path.clone()))
-    }
-
-    fn clips(&self) -> Option<HashMap<String, Vec<Rect>>> {
-        Some(clips_character(self.source_path.clone()))
     }
 
     fn draw(&self, canvas: &mut Canvas, isometry: &Isometry<f32>) {
         let source = source_character(self.source_path.clone());
-        let clips = clips_character(self.source_path.clone());
+        let clips = source.clips;
 
         let clip = {
             let anim = match self.state {
@@ -379,29 +371,23 @@ impl Sprite for Character {
             };
             &anim[self.ticks as usize]
         };
-        let clipped = source
-            .crop_imm(
-                clip.x() as u32,
-                clip.y() as u32,
-                clip.width() as u32,
-                clip.height() as u32,
-            )
-            .to_bytes();
+
         let color_info = ColorInfo::new(
             ColorType::RGBA8888,
             AlphaType::Unpremul,
             ColorSpace::new_srgb(),
         );
-        let clip_size = ISize::new(clip.width() as i32, clip.height() as i32);
-        let img_info = ImageInfo::from_color_info(clip_size, color_info);
-        let data = unsafe { Data::new_bytes(&clipped) };
 
-        let img = Image::from_raster_data(&img_info, data, clip.width() as usize * 4).unwrap();
+        let (w, h) = source.dimensions;
+        let clip_size = ISize::new(w, h);
+        let img_info = ImageInfo::from_color_info(clip_size, color_info);
+        let data = unsafe { Data::new_bytes(&source.bytes) };
+
+        let img = Image::from_raster_data(&img_info, data, img_info.width() as usize * 4).unwrap();
         let position = isometry.translation;
         let paint = Paint::new(colors::GREEN, None);
 
         let rect = Rect::new(position.x as f32, position.y as f32, 1.0, 1.0);
-        println!("{:?}", position);
         canvas.draw_image_rect(img, Some((clip, SrcRectConstraint::Strict)), rect, &paint);
         canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
     }
