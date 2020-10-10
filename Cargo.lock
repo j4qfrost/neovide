@@ -2189,6 +2189,7 @@ dependencies = [
  "nier",
  "nier_macros",
  "nphysics2d",
+ "num-traits",
  "nvim-rs",
  "parking_lot 0.10.2",
  "rand",

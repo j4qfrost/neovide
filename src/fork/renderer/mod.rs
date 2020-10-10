@@ -2,6 +2,7 @@ use super::game::*;
 use super::physics::*;
 use legion::IntoQuery;
 use nphysics2d::object::{Body, BodySet, DefaultBodyHandle};
+// use ncollide2d::shape::ShapeHandle;
 use skulpin::skia_safe::{colors, matrix, paint, Canvas, Color, Color4f, Paint, Point, Rect};
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::CoordinateSystemHelper;
@@ -19,6 +20,9 @@ impl Default for Renderer {
         }
     }
 }
+
+pub const GROUND_THICKNESS: f32 = 0.2;
+pub const GROUND_HALF_EXTENTS_WIDTH: f32 = 3.0;
 
 impl Renderer {
     pub fn draw(
@@ -54,6 +58,13 @@ impl Renderer {
         paint.set_style(paint::Style::Stroke);
         paint.set_stroke_width(0.02);
 
+        let mut query = <(&DefaultBodyHandle, &MachineType, &Sprite)>::query();
+        for (handle, machine_type, sprite) in query.iter(&game.world) {
+            let body = game.physics.bodies.rigid_body(*handle).unwrap();
+            match machine_type {
+                MachineType::Character(machine) => (sprite.draw_fn)(canvas, body.position(), &sprite.source, machine.state as u32, machine.ticks),
+            }
+        }
         canvas.draw_rect(
             Rect {
                 left: -GROUND_HALF_EXTENTS_WIDTH,
@@ -63,19 +74,6 @@ impl Renderer {
             },
             &paint,
         );
-
-        // construct a query from a "view tuple"
-        let mut query = <(&DefaultBodyHandle, &MachineType)>::query();
-
-        // this time we have &Velocity and &mut Position
-        for (handle, machine_type) in query.iter(&game.world) {
-            let body = game.physics.bodies.rigid_body(*handle).unwrap();
-            match machine_type {
-                MachineType::Sphere(machine) => machine.draw(canvas, body.position()),
-                MachineType::Character(machine) => machine.draw(canvas, body.position()),
-            }
-        }
-
         coordinate_system_helper.use_logical_coordinates(canvas);
 
         true

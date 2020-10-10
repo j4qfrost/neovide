@@ -47,6 +47,7 @@ deno_core = "0.58"
 deno_fetch = "0.1.0"
 nier = { git = "https://github.com/j4qfrost/nier-rs" }
 nier_macros = { git = "https://github.com/j4qfrost/nier-rs" }
+num-traits = "0.2"
 
 rustpython-vm = { git = "https://github.com/j4qfrost/RustPython.git" }
 rustpython-compiler = { git = "https://github.com/j4qfrost/RustPython.git" }

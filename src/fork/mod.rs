@@ -12,7 +12,6 @@ mod renderer;
 use renderer::*;
 pub mod game;
 use game::*;
-pub mod physics;
 // pub mod deno;
 pub mod python;
 
