@@ -25,11 +25,13 @@ use skulpin::skia_safe::ISize;
 use skulpin::skia_safe::Image;
 use skulpin::skia_safe::ImageInfo;
 use skulpin::skia_safe::Rect;
+use skulpin::skia_safe::IRect;
 use skulpin::skia_safe::Paint;
 use skulpin::skia_safe::Point;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::PathBuf;
+use image::DynamicImage;
 // // Used for physics
 use na::Vector2;
 
@@ -88,7 +90,7 @@ struct Level {
 
 pub const GROUND_THICKNESS: f32 = 0.2;
 pub const GROUND_HALF_EXTENTS_WIDTH: f32 = 3.0;
-pub const BALL_RADIUS: f32 = 0.2;
+pub const BALL_RADIUS: f32 = 0.5;
 pub const BALL_COUNT: usize = 5;
 
 impl Level {
@@ -116,35 +118,35 @@ impl Level {
         // Add the collider to the collider set.
         physics.colliders.insert(ground_collider);
 
-        // let ball_shape_handle = ShapeHandle::new(Ball::new(BALL_RADIUS));
+        let ball_shape_handle = ShapeHandle::new(Ball::new(BALL_RADIUS));
 
         let shift = (BALL_RADIUS + ColliderDesc::<f32>::default_margin()) * 2.0;
         let centerx = shift * (BALL_COUNT as f32) / 2.0;
         let centery = shift / 2.0;
         let height = 3.0;
 
-        // for i in 0usize..BALL_COUNT {
-        //     for j in 0usize..BALL_COUNT {
-        //         let x = i as f32 * shift - centerx;
-        //         let y = j as f32 * shift + centery + height;
+        for i in 0usize..BALL_COUNT {
+            for j in 0usize..BALL_COUNT {
+                let x = i as f32 * shift - centerx;
+                let y = j as f32 * shift + centery + height;
 
-        //         // Build the rigid body.
-        //         let rigid_body = RigidBodyDesc::new().translation(Vector2::new(x, y)).build();
+                // Build the rigid body.
+                let rigid_body = RigidBodyDesc::new().translation(Vector2::new(x, y)).build();
 
-        //         // Insert the rigid body to the body set.
-        //         let rigid_body_handle = physics.bodies.insert(rigid_body);
+                // Insert the rigid body to the body set.
+                let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-        //         // Build the collider.
-        //         let ball_collider = ColliderDesc::new(ball_shape_handle.clone())
-        //             .density(1.0)
-        //             .build(BodyPartHandle(rigid_body_handle, 0));
+                // Build the collider.
+                let ball_collider = ColliderDesc::new(ball_shape_handle.clone())
+                    .density(1.0)
+                    .build(BodyPartHandle(rigid_body_handle, 0));
 
-        //         // Insert the collider to the body set.
-        //         physics.colliders.insert(ball_collider);
+                // Insert the collider to the body set.
+                physics.colliders.insert(ball_collider);
 
-        //         world.push((rigid_body_handle, MachineType::Sphere(Sphere::default())));
-        //     }
-        // }
+                world.push((rigid_body_handle, MachineType::Sphere(Sphere::default())));
+            }
+        }
 
         let character = Character::default();
         let clips = character.source().unwrap().clips;
@@ -154,12 +156,10 @@ impl Level {
         // Insert the rigid body to the body set.
         let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-        let character_rect = &clips.get("idle").unwrap()[0];
+        let character_image = &clips.get("idle").unwrap()[0].get(ClipOrientation::Original);
 
         let box_shape_handle = ShapeHandle::new(Cuboid::new(Vector2::new(
-            // character_rect.size.width as f32 / 2.0,
-            // character_rect.size.height as f32 / 2.0,
-            0.1, 0.1,
+            BALL_RADIUS, BALL_RADIUS
         )));
 
         // Build the collider.
@@ -311,45 +311,62 @@ impl Deterministic<CharacterState, CharacterInput> for Character {
     }
 }
 
+fn make_skia_image(img: &DynamicImage) -> Image {
+    let (w, h) = img.dimensions();
+    let bytes = img.to_bytes();
+    let data = unsafe { Data::new_bytes(&bytes) };
+
+    let color_info = ColorInfo::new(
+        ColorType::RGBA8888,
+        AlphaType::Opaque,
+        ColorSpace::new_srgb(),
+    );
+    let size = ISize::new(w as i32, h as i32);
+    let img_info = ImageInfo::from_color_info(size, color_info);
+    Image::from_raster_data(&img_info, data, w as usize * img_info.bytes_per_pixel()).unwrap()
+}
+
 #[cache(LruCache : LruCache::new(1))]
 fn source_character(source_path: String) -> SpriteSheet {
     let img = image::open(source_path).unwrap();
     let (w, h) = img.dimensions();
-    let clip_w = w as f32 / 7.0;
-    let clip_h = h as f32 / 11.0;
+    let clip_w = w as i32 / 7;
+    let clip_h = h as i32 / 11;
 
     let mut clips = HashMap::new();
     // Idle
     let idle_clips = vec![
-        Rect::from_xywh(0.0, 0.0, clip_w, clip_h),
-        Rect::from_xywh(clip_w, 0.0, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 2.0, 0.0, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 3.0, 0.0, clip_w, clip_h),
+        Clip::new(&img, &IRect::from_xywh(0, 0, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w, 0, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 2, 0, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 3, 0, clip_w, clip_h), true),
     ];
     clips.insert("idle".to_string(), idle_clips);
 
+    // Crouch
+    // let crouch_clips = vec![
+    //     Clip::new(&img, &IRect::from_xywh(clip_w * 4, 0, clip_w, clip_h), true),
+    //     Clip::new(&img, &IRect::from_xywh(clip_w * 5, 0, clip_w, clip_h), true),
+    //     Clip::new(&img, &IRect::from_xywh(clip_w * 6, 0, clip_w, clip_h), true),
+    //     Clip::new(&img, &IRect::from_xywh(0, clip_h, clip_w, clip_h), true),
+    // ];
+    // clips.insert("crouch".to_string(), crouch_clips);
+
     // Running
     let running_clips = vec![
-        Rect::from_xywh(clip_w * 4.0, 0.0, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 5.0, 0.0, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 6.0, 0.0, clip_w, clip_h),
-        Rect::from_xywh(0.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 2.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 3.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 4.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 5.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(clip_w * 6.0, clip_h, clip_w, clip_h),
-        Rect::from_xywh(0.0, clip_h, clip_w * 2.0, clip_h),
-        Rect::from_xywh(clip_w, clip_h, clip_w * 2.0, clip_h),
+        Clip::new(&img, &IRect::from_xywh(clip_w, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 2, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 3, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 4, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 5, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w * 6, clip_h, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(0, clip_h, clip_w * 2, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(clip_w, clip_h, clip_w * 2, clip_h), true),
     ];
     clips.insert("running".to_string(), running_clips);
-    let bytes = img.to_bytes();
 
     SpriteSheet {
-        bytes,
         clips,
-        dimensions: (w as i32, h as i32),
     }
 }
 
@@ -360,36 +377,32 @@ impl Sprite for Character {
 
     fn draw(&self, canvas: &mut Canvas, isometry: &Isometry<f32>) {
         let source = source_character(self.source_path.clone());
-        let clips = source.clips;
-
-        let clip = {
-            let anim = match self.state {
-                CharacterState::Idle => clips.get("idle").unwrap(),
-                CharacterState::RunningLeft | CharacterState::RunningRight => {
-                    clips.get("running").unwrap()
-                }
-            };
-            &anim[self.ticks as usize]
+        let clip = match self.state {
+            CharacterState::Idle => source.get_image("idle", self.ticks as usize, ClipOrientation::Original),
+            CharacterState::RunningLeft => source.get_image("running", self.ticks as usize, ClipOrientation::Flipped),
+            CharacterState::RunningRight => source.get_image("running", self.ticks as usize, ClipOrientation::Original),
         };
 
-        let color_info = ColorInfo::new(
-            ColorType::RGBA8888,
-            AlphaType::Unpremul,
-            ColorSpace::new_srgb(),
-        );
+        let img = make_skia_image(clip);
 
-        let (w, h) = source.dimensions;
-        let clip_size = ISize::new(w, h);
-        let img_info = ImageInfo::from_color_info(clip_size, color_info);
-        let data = unsafe { Data::new_bytes(&source.bytes) };
-
-        let img = Image::from_raster_data(&img_info, data, img_info.width() as usize * 4).unwrap();
         let position = isometry.translation;
-        let paint = Paint::new(colors::GREEN, None);
+        let paint = Paint::new(colors::RED, None);
 
-        let rect = Rect::new(position.x as f32, position.y as f32, 1.0, 1.0);
-        canvas.draw_image_rect(img, Some((clip, SrcRectConstraint::Strict)), rect, &paint);
-        canvas.draw_circle(Point::new(position.x, position.y), BALL_RADIUS, &paint);
+        let rect = Rect::from_xywh(position.x - 0.5, position.y - 0.5, 1.0, 1.0);
+        
+        // Debug
+        {
+            let p1 = Point::new(position.x - 0.5, position.y - 0.5);
+            let p2 = Point::new(position.x - 0.5, position.y + 0.5);
+            let p3 = Point::new(position.x + 0.5, position.y + 0.5);
+            let p4 = Point::new(position.x + 0.5, position.y - 0.5);
+            canvas.draw_line(p1, p2, &paint);
+            canvas.draw_line(p2, p3, &paint);
+            canvas.draw_line(p3, p4, &paint);
+            canvas.draw_line(p4, p1, &paint);
+        }
+
+        canvas.draw_image_rect(img, None, rect, &paint);
     }
 }
 
@@ -405,7 +418,45 @@ impl Animate for Character {
 
 #[derive(Clone)]
 pub struct SpriteSheet {
-    pub bytes: Vec<u8>,
-    pub clips: HashMap<String, Vec<Rect>>,
-    pub dimensions: (i32, i32),
+    clips: HashMap<String, Vec<Clip>>,
+}
+
+impl SpriteSheet {
+    pub fn get_image(&self, key: &str, it: usize, orientation: ClipOrientation) -> &DynamicImage {
+        self.clips.get(key).unwrap()[it].get(orientation)
+    }
+}
+
+#[derive(Clone)]
+pub struct Clip {
+    original: DynamicImage,
+    flipped: Option<DynamicImage>,
+}
+
+impl Clip {
+    pub fn new(source: &DynamicImage, rect: &IRect, is_flipped: bool) -> Self {
+        let cropped = source.crop_imm(rect.x() as u32, rect.y() as u32, rect.width() as u32, rect.height() as u32);
+        let original = cropped.flipv();
+        let flipped = if is_flipped {
+            Some(original.fliph())
+        } else {
+            None
+        };
+        Self {
+            original,
+            flipped,
+        }
+    }
+
+    pub fn get(&self, orientation: ClipOrientation) -> &DynamicImage {
+        match orientation {
+            ClipOrientation::Original => &self.original,
+            ClipOrientation::Flipped => self.flipped.as_ref().unwrap(),
+        }
+    }
+}
+
+pub enum ClipOrientation {
+    Original,
+    Flipped
 }
