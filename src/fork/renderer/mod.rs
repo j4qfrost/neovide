@@ -1,5 +1,5 @@
-use super::components::sprite::Sprite;
-use super::game::entities::MachineType;
+use super::game::components::animate::Animate;
+use super::game::components::sprite::Sprite;
 use super::game::*;
 use legion::IntoQuery;
 use nphysics2d::object::DefaultBodyHandle;
@@ -56,18 +56,16 @@ impl Renderer {
         paint.set_style(paint::Style::Stroke);
         paint.set_stroke_width(0.02);
 
-        let mut query = <(&DefaultBodyHandle, &MachineType, &Sprite)>::query();
-        for (handle, machine_type, sprite) in query.iter(&game.world) {
+        let mut query = <(&DefaultBodyHandle, &Animate, &Sprite)>::query();
+        for (handle, animate, sprite) in query.iter(&game.world) {
             let body = game.physics.bodies.rigid_body(*handle).unwrap();
-            match machine_type {
-                MachineType::Character(machine) => (sprite.draw_fn)(
-                    canvas,
-                    body.position(),
-                    &sprite.source,
-                    machine.state as u32,
-                    machine.ticks,
-                ),
-            }
+            (sprite.draw_fn)(
+                canvas,
+                body.position(),
+                &sprite.source,
+                animate.state(),
+                animate.ticks,
+            );
         }
         canvas.draw_rect(
             Rect {

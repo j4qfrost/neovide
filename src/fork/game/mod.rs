@@ -8,7 +8,8 @@ use skulpin::winit::event::VirtualKeyCode as Keycode;
 use super::python::Python;
 pub mod components;
 pub mod entities;
-use entities::{MachineType, MovementInput};
+use components::animate::Animate;
+use components::input::MovementInput;
 use skulpin::winit::event::ElementState;
 
 pub struct Game {
@@ -48,16 +49,12 @@ impl Game {
 impl Game {
     pub fn send(&mut self, keycode: Option<Keycode>, key_state: ElementState) {
         // construct a query from a "view tuple"
-        let mut query = <(&MovementInput, &mut MachineType)>::query();
-        if let Ok((_, machine_type)) = query.get_mut(&mut self.world, self.character_handle) {
-            match machine_type {
-                MachineType::Character(machine) => {
-                    if key_state == ElementState::Pressed {
-                        MovementInput::process(keycode, machine);
-                    } else {
-                        MovementInput::interrupt(keycode, machine);
-                    }
-                } // _ => {}
+        let mut query = <&mut Animate>::query();
+        if let Ok(animate) = query.get_mut(&mut self.world, self.character_handle) {
+            if key_state == ElementState::Pressed {
+                MovementInput::process(keycode, animate);
+            } else {
+                MovementInput::interrupt(keycode, animate);
             }
         }
     }

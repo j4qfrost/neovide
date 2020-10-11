@@ -1,10 +1,13 @@
-use super::components::sprite::{ClipOrientation, Sprite};
-use super::entities::{Character, MachineType, MovementInput};
+use super::components::animate::Animate;
+
+use super::components::sprite::Sprite;
+use super::entities::character;
 use super::physics::Physics;
 use legion::{Entity, World};
 use nalgebra::Vector2;
 use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
 use nphysics2d::object::{BodyPartHandle, ColliderDesc, Ground, RigidBodyDesc};
+use std::path::PathBuf;
 
 pub struct Level {
     name: String,
@@ -69,16 +72,20 @@ impl Level {
             }
         }
 
-        let _character = Character::default();
-        let sprite = Sprite::default();
-        let source = &sprite.source;
+        let mut display_root = PathBuf::new();
+        display_root.push(env!("CARGO_MANIFEST_DIR"));
+        display_root.push("src/fork/res/adventurer-Sheet.png");
+        let source_path = display_root.to_str().unwrap().to_string();
+        let source = character::source(source_path);
+        let sprite = Sprite::new(character::draw, source);
+        let animate = Animate::new(0, character::delta, character::animate);
         // Build the rigid body.
         let rigid_body = RigidBodyDesc::new().translation(Vector2::y()).build();
 
         // Insert the rigid body to the body set.
         let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-        let _character_image = &source.get_image("idle", 0, ClipOrientation::Original);
+        // let _character_image = &source.get_image("idle", 0, ClipOrientation::Original);
 
         let box_shape_handle =
             ShapeHandle::new(Cuboid::new(Vector2::new(BALL_RADIUS, BALL_RADIUS)));
@@ -91,11 +98,6 @@ impl Level {
         // Insert the collider to the body set.
         physics.colliders.insert(box_collider);
 
-        world.push((
-            rigid_body_handle,
-            MachineType::Character(Character::default()),
-            sprite,
-            MovementInput::default(),
-        ))
+        world.push((rigid_body_handle, animate, sprite))
     }
 }
