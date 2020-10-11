@@ -1,19 +1,10 @@
-use legion::{World, Entity};
-use ncollide2d::shape::{Ball, Cuboid};
-use ncollide2d::shape::ShapeHandle;
-use nphysics2d::force_generator::DefaultForceGeneratorSet;
-use nphysics2d::joint::DefaultJointConstraintSet;
-use nphysics2d::object::{
-    BodyPartHandle, ColliderDesc, DefaultBodyHandle, DefaultBodySet, DefaultColliderSet, Ground,
-    RigidBodyDesc,
-};
-use nalgebra::Vector2;
+use super::components::sprite::{ClipOrientation, Sprite};
+use super::entities::{Character, MachineType, MovementInput};
 use super::physics::Physics;
-use super::MachineType;
-use super::Character;
-use super::Sprite;
-use super::MovementInput;
-use super::ClipOrientation;
+use legion::{Entity, World};
+use nalgebra::Vector2;
+use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
+use nphysics2d::object::{BodyPartHandle, ColliderDesc, Ground, RigidBodyDesc};
 
 pub struct Level {
     name: String,
@@ -32,6 +23,7 @@ impl Level {
     }
 
     pub fn init(&self, world: &mut World, physics: &mut Physics) -> Entity {
+        println!("Loading level {:?}", self.name);
         // A rectangle that the balls will fall on
         let ground_shape = ShapeHandle::new(Cuboid::new(Vector2::new(
             GROUND_HALF_EXTENTS_WIDTH,
@@ -77,24 +69,22 @@ impl Level {
             }
         }
 
-        let character = Character::default();
+        let _character = Character::default();
         let sprite = Sprite::default();
         let source = &sprite.source;
-        let clips = &source.clips;
         // Build the rigid body.
         let rigid_body = RigidBodyDesc::new().translation(Vector2::y()).build();
 
         // Insert the rigid body to the body set.
         let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-        let character_image = &clips.get("idle").unwrap()[0].get(ClipOrientation::Original);
+        let _character_image = &source.get_image("idle", 0, ClipOrientation::Original);
 
-        let box_shape_handle = ShapeHandle::new(Cuboid::new(Vector2::new(
-            BALL_RADIUS, BALL_RADIUS
-        )));
+        let box_shape_handle =
+            ShapeHandle::new(Cuboid::new(Vector2::new(BALL_RADIUS, BALL_RADIUS)));
 
         // Build the collider.
-        let box_collider = ColliderDesc::new(box_shape_handle.clone())
+        let box_collider = ColliderDesc::new(box_shape_handle)
             .density(1.0)
             .build(BodyPartHandle(rigid_body_handle, 0));
 

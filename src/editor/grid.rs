@@ -245,10 +245,7 @@ mod tests {
 
         // RUN FUNCTION
         character_grid.set_characters_all(grid_cell.clone());
-        assert_eq!(
-            character_grid.characters,
-            vec![grid_cell.clone(); context.area]
-        );
+        assert_eq!(character_grid.characters, vec![grid_cell; context.area]);
     }
 
     #[test]
@@ -261,7 +258,7 @@ mod tests {
             Some(Arc::new(Style::new(context.none_colors))),
         ));
         character_grid.dirty = vec![false; context.area];
-        character_grid.characters = vec![grid_cell.clone(); context.area];
+        character_grid.characters = vec![grid_cell; context.area];
         character_grid.should_clear = false;
 
         // RUN FUNCTION
@@ -289,7 +286,7 @@ mod tests {
             Some(Arc::new(Style::new(context.none_colors))),
         ));
         character_grid.dirty = vec![false; context.area];
-        character_grid.characters = vec![grid_cell.clone(); context.area];
+        character_grid.characters = vec![grid_cell; context.area];
         character_grid.should_clear = false;
 
         // RUN FUNCTION

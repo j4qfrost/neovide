@@ -221,8 +221,6 @@ mod tests {
         }
     }
 
-    use tokio;
-
     #[test]
     fn test_set_setting_handlers() {
         let settings = Settings::new();
@@ -280,8 +278,8 @@ mod tests {
         let vt2 = TypeId::of::<f32>();
 
         let mut values = settings.settings.write();
-        values.insert(vt1, Box::new(v1.clone()));
-        values.insert(vt2, Box::new(v2.clone()));
+        values.insert(vt1, Box::new(v1));
+        values.insert(vt2, Box::new(v2));
 
         unsafe {
             settings.settings.force_unlock_write();

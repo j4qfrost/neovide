@@ -155,7 +155,7 @@ mod tests {
             cursor.foreground(&DEFAULT_COLORS),
             DEFAULT_COLORS.background.clone().unwrap()
         );
-        cursor.style = style.clone();
+        cursor.style = style;
         assert_eq!(
             cursor.foreground(&DEFAULT_COLORS),
             COLORS.foreground.clone().unwrap()
@@ -177,7 +177,7 @@ mod tests {
             cursor.background(&DEFAULT_COLORS),
             DEFAULT_COLORS.foreground.clone().unwrap()
         );
-        cursor.style = style.clone();
+        cursor.style = style;
         assert_eq!(
             cursor.background(&DEFAULT_COLORS),
             COLORS.background.clone().unwrap()

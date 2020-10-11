@@ -1,6 +1,6 @@
 use crate::window::manager::{NeovideEvent, NeovideEventProcessor, WindowHandle};
 use log::error;
-use skulpin::winit::event::VirtualKeyCode as Keycode;
+
 use skulpin::winit::event::{
     ElementState, ModifiersState, MouseButton, MouseScrollDelta, WindowEvent,
 };
@@ -21,9 +21,7 @@ pub struct Fork {
     saved_handle: Option<Box<dyn WindowHandle>>,
     game: Game,
     renderer: Renderer,
-    keycode: Option<Keycode>,
     modifiers: ModifiersState,
-    ignore_input_this_frame: bool,
 }
 
 impl Fork {

@@ -1,13 +1,11 @@
+use super::components::sprite::Sprite;
+use super::game::entities::MachineType;
 use super::game::*;
-use super::physics::*;
 use legion::IntoQuery;
-use nphysics2d::object::{Body, BodySet, DefaultBodyHandle};
-// use ncollide2d::shape::ShapeHandle;
-use skulpin::skia_safe::{colors, matrix, paint, Canvas, Color, Color4f, Paint, Point, Rect};
+use nphysics2d::object::DefaultBodyHandle;
+use skulpin::skia_safe::{matrix, paint, Canvas, Color, Color4f, Paint, Rect};
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::CoordinateSystemHelper;
-
-use super::game::MachineType;
 
 pub struct Renderer {
     pub logical_size: LogicalSize<u32>,
@@ -62,7 +60,13 @@ impl Renderer {
         for (handle, machine_type, sprite) in query.iter(&game.world) {
             let body = game.physics.bodies.rigid_body(*handle).unwrap();
             match machine_type {
-                MachineType::Character(machine) => (sprite.draw_fn)(canvas, body.position(), &sprite.source, machine.state as u32, machine.ticks),
+                MachineType::Character(machine) => (sprite.draw_fn)(
+                    canvas,
+                    body.position(),
+                    &sprite.source,
+                    machine.state as u32,
+                    machine.ticks,
+                ),
             }
         }
         canvas.draw_rect(

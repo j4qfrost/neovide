@@ -1,14 +1,7 @@
-use rustpython_compiler::error::CompileError;
 use rustpython_compiler::mode::Mode;
 use rustpython_vm::function::PyFuncArgs;
-use rustpython_vm::obj::objcode::PyCodeRef;
-use rustpython_vm::obj::objint;
-use rustpython_vm::pyobject::PyObjectPayload;
 use rustpython_vm::pyobject::PyResult;
-use rustpython_vm::pyobject::PyValue;
-use rustpython_vm::{InitParameter, Interpreter, VirtualMachine};
-
-use std::borrow::Borrow;
+use rustpython_vm::{Interpreter, VirtualMachine};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -35,13 +28,15 @@ impl Python {
             .enter(|vm| vm.compile(&contents, Mode::Exec, file_path.to_string()))
             .unwrap();
 
-        self.runtime.enter(|vm| {
-            let scope = vm.new_scope_with_builtins();
-            vm.run_code_obj(hello, scope);
-            let function = vm.ctx.new_function(test_func);
-            let args = PyFuncArgs::new([(vm.ctx.new_int(5))].to_vec(), Default::default());
-            vm.invoke(&function, args)
-        });
+        self.runtime
+            .enter(|vm| {
+                let scope = vm.new_scope_with_builtins();
+                vm.run_code_obj(hello, scope)?;
+                let function = vm.ctx.new_function(test_func);
+                let args = PyFuncArgs::new([(vm.ctx.new_int(5))].to_vec(), Default::default());
+                vm.invoke(&function, args)
+            })
+            .unwrap();
     }
 }
 

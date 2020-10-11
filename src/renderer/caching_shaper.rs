@@ -501,7 +501,7 @@ mod test {
 
             let font = dummy_font();
             let mut eft = ExtendedFontFamily::new();
-            eft.add_font(font.clone());
+            eft.add_font(font);
             let font_family = loader.load_from_asset(EXTRA_SYMBOL_FONT);
             let result = font_family.unwrap().fonts.first().unwrap().font.full_name();
             assert_eq!(&result, &eft.fonts.first().unwrap().font.full_name());

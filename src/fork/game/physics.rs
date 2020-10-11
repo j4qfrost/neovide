@@ -1,16 +1,7 @@
-// This example does a physics demo, because physics is fun :)
-
-use nalgebra as na;
-
-// Used for physics
-use na::Vector2;
-use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
+use nalgebra::Vector2;
 use nphysics2d::force_generator::DefaultForceGeneratorSet;
 use nphysics2d::joint::DefaultJointConstraintSet;
-use nphysics2d::object::{
-    BodyPartHandle, ColliderDesc, DefaultBodyHandle, DefaultBodySet, DefaultColliderSet, Ground,
-    RigidBodyDesc,
-};
+use nphysics2d::object::{DefaultBodySet, DefaultColliderSet};
 use nphysics2d::world::{DefaultGeometricalWorld, DefaultMechanicalWorld};
 
 pub const GRAVITY: f32 = -9.81;
