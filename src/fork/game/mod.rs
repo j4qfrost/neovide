@@ -5,6 +5,7 @@ use legion::*;
 mod systems;
 use level::*;
 use skulpin::winit::event::VirtualKeyCode as Keycode;
+use systems::DeltaTime;
 // use super::deno::Deno;
 use super::python::Python;
 pub mod components;
@@ -29,7 +30,9 @@ impl Default for Game {
         let schedule = Schedule::builder()
             .add_system(systems::animate_entities_system())
             .build();
-        let resources = Resources::default();
+        let mut resources = Resources::default();
+        resources.insert(DeltaTime::default());
+
         let mut physics = Physics::new();
         let mut python = Python::default();
         python.init();
