@@ -3,7 +3,7 @@ use num_traits::FromPrimitive;
 pub struct Animate {
     delta_fn: fn(u32, u32) -> u32,
     current: u32,
-    // animate_fn: fn(&mut Self) -> (),
+    animate_fn: fn(&mut Self) -> (),
     pub ticks: u32,
 }
 
@@ -27,5 +27,9 @@ impl Animate {
 
     pub fn state<T: FromPrimitive>(&self) -> T {
         T::from_u32(self.current).unwrap()
+    }
+
+    pub fn animate(&mut self) {
+        (self.animate_fn)(self);
     }
 }

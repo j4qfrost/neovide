@@ -90,6 +90,9 @@ impl WindowHandle for Fork {
         for _ in 1..self.game.nsteps {
             self.game.physics.step();
         }
+        self.game
+            .schedule
+            .execute(&mut self.game.world, &mut self.game.resources);
         true
     }
 

@@ -2,6 +2,7 @@ pub mod physics;
 use physics::*;
 mod level;
 use legion::*;
+mod systems;
 use level::*;
 use skulpin::winit::event::VirtualKeyCode as Keycode;
 // use super::deno::Deno;
@@ -14,6 +15,8 @@ use skulpin::winit::event::ElementState;
 
 pub struct Game {
     pub world: World,
+    pub schedule: Schedule,
+    pub resources: Resources,
     pub physics: Physics,
     pub nsteps: usize,
     pub python: Python,
@@ -23,6 +26,10 @@ pub struct Game {
 impl Default for Game {
     fn default() -> Self {
         let mut world = World::default();
+        let schedule = Schedule::builder()
+            .add_system(systems::animate_entities_system())
+            .build();
+        let resources = Resources::default();
         let mut physics = Physics::new();
         let mut python = Python::default();
         python.init();
@@ -32,6 +39,8 @@ impl Default for Game {
 
         Self {
             world,
+            schedule,
+            resources,
             physics,
             nsteps: 3,
             python,
