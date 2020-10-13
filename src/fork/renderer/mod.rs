@@ -59,13 +59,7 @@ impl Renderer {
         let mut query = <(&DefaultBodyHandle, &Animate, &Sprite)>::query();
         for (handle, animate, sprite) in query.iter(&game.world) {
             let body = game.physics.bodies.rigid_body(*handle).unwrap();
-            (sprite.draw_fn)(
-                canvas,
-                body.position(),
-                &sprite.source,
-                animate.state(),
-                animate.ticks,
-            );
+            (sprite.draw_fn)(canvas, body.position(), &sprite.source, &animate);
         }
         canvas.draw_rect(
             Rect {

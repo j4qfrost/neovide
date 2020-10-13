@@ -43,6 +43,5 @@ impl Python {
 fn test_func(mut py_args: PyFuncArgs, vm: &VirtualMachine) -> PyResult {
     let five = vm.ctx.new_int(5);
     let ret = vm._add(&py_args.shift(), &five);
-    println!("{:?}", 5);
     ret
 }

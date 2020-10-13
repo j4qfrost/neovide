@@ -12,6 +12,8 @@ embed-fonts = []
 sdl2 = ["skulpin/skulpin_sdl2"]
 winit = ["skulpin/skulpin_winit"]
 
+bounds = []
+
 [dependencies]
 euclid = "0.20.7"
 font-kit = "0.10.0"

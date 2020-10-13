@@ -49,11 +49,9 @@ impl Deno {
                 ).unwrap();
 
             loop {
-                            println!("wwasd");
                                 use std::time;
             let ten_millis = time::Duration::from_millis(500);
             std::thread::sleep(ten_millis);
-            println!("tesasdasd");
             }
 
             // isolate.await

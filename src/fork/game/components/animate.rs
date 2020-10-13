@@ -4,7 +4,7 @@ pub struct Animate {
     delta_fn: fn(u32, u32) -> u32,
     current: u32,
     animate_fn: fn(&mut Self) -> (),
-    pub ticks: u32,
+    pub ticks: usize,
 }
 
 impl Animate {

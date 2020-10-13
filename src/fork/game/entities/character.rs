@@ -1,10 +1,9 @@
 use super::super::components::animate::*;
 use super::super::components::sprite::*;
-
 use image::GenericImageView;
 use nphysics2d::math::Isometry;
 use num_traits::FromPrimitive;
-use skulpin::skia_safe::{colors, Canvas, IRect, Paint, Point, Rect};
+use skulpin::skia_safe::{colors, Canvas, IRect, Paint, Rect};
 
 use std::collections::HashMap;
 
@@ -80,36 +79,45 @@ impl FromPrimitive for CharacterInput {
     }
 }
 
-pub fn draw(
-    canvas: &mut Canvas,
-    isometry: &Isometry<f32>,
-    source: &SpriteSheet,
-    state: u32,
-    ticks: u32,
-) {
-    let clip = match CharacterState::from_u32(state).unwrap() {
-        CharacterState::Idle => source.get_image("idle", ticks as usize, ClipOrientation::Original),
-        CharacterState::RunningLeft => {
-            source.get_image("running", ticks as usize, ClipOrientation::Flipped)
-        }
-        CharacterState::RunningRight => {
-            source.get_image("running", ticks as usize, ClipOrientation::Original)
-        }
-    };
+/*
+#[derive(serde)]
+struct CharacterDesc {
 
-    let img = make_skia_image(clip);
+}
+*/
+
+pub fn draw(canvas: &mut Canvas, isometry: &Isometry<f32>, source: &SpriteSheet, anim: &Animate) {
+    let clip = match anim.state() {
+        CharacterState::Idle => (
+            source.get_clip("idle", anim.ticks),
+            ClipOrientation::Original,
+        ),
+        CharacterState::RunningLeft => (
+            source.get_clip("running", anim.ticks),
+            ClipOrientation::Flipped,
+        ),
+        CharacterState::RunningRight => (
+            source.get_clip("running", anim.ticks),
+            ClipOrientation::Original,
+        ),
+    };
+    let dyn_image = clip.0.get(clip.1);
+
+    let img = make_skia_image(dyn_image);
 
     let position = isometry.translation;
     let paint = Paint::new(colors::RED, None);
+    let ratio = clip.0.width_over_height;
 
-    let rect = Rect::from_xywh(position.x - 0.5, position.y - 0.5, 1.0, 1.0);
+    let rect = Rect::from_xywh(position.x - ratio / 2.0, position.y - 0.5, ratio, 1.0);
 
-    // Debug
+    #[cfg(feature = "bounds")]
     {
-        let p1 = Point::new(position.x - 0.5, position.y - 0.5);
-        let p2 = Point::new(position.x - 0.5, position.y + 0.5);
-        let p3 = Point::new(position.x + 0.5, position.y + 0.5);
-        let p4 = Point::new(position.x + 0.5, position.y - 0.5);
+        use skulpin::skia_safe::Point;
+        let p1 = Point::new(position.x - ratio / 2.0, position.y - 0.5);
+        let p2 = Point::new(position.x - ratio / 2.0, position.y + 0.5);
+        let p3 = Point::new(position.x + ratio / 2.0, position.y + 0.5);
+        let p4 = Point::new(position.x + ratio / 2.0, position.y - 0.5);
         canvas.draw_line(p1, p2, &paint);
         canvas.draw_line(p2, p3, &paint);
         canvas.draw_line(p3, p4, &paint);
@@ -132,7 +140,7 @@ pub fn delta(state: u32, input: u32) -> u32 {
 pub fn animate(anim: &mut Animate) {
     let states = match anim.state() {
         CharacterState::Idle => 4,
-        CharacterState::RunningLeft | CharacterState::RunningRight => 8,
+        CharacterState::RunningLeft | CharacterState::RunningRight => 6,
     };
     anim.ticks = (anim.ticks + 1) % states;
 }
@@ -146,10 +154,25 @@ pub fn source(source_path: String) -> SpriteSheet {
     let mut clips = HashMap::new();
     // Idle
     let idle_clips = vec![
-        Clip::new(&img, &IRect::from_xywh(0, 0, clip_w, clip_h), true),
-        Clip::new(&img, &IRect::from_xywh(clip_w, 0, clip_w, clip_h), true),
-        Clip::new(&img, &IRect::from_xywh(clip_w * 2, 0, clip_w, clip_h), true),
-        Clip::new(&img, &IRect::from_xywh(clip_w * 3, 0, clip_w, clip_h), true),
+        Clip::new(&img, &IRect::from_xywh(0, 0, clip_w, clip_h), true, true),
+        Clip::new(
+            &img,
+            &IRect::from_xywh(clip_w, 0, clip_w, clip_h),
+            true,
+            true,
+        ),
+        Clip::new(
+            &img,
+            &IRect::from_xywh(clip_w * 2, 0, clip_w, clip_h),
+            true,
+            true,
+        ),
+        Clip::new(
+            &img,
+            &IRect::from_xywh(clip_w * 3, 0, clip_w, clip_h),
+            true,
+            true,
+        ),
     ];
     clips.insert("idle".to_string(), idle_clips);
 
@@ -168,36 +191,36 @@ pub fn source(source_path: String) -> SpriteSheet {
             &img,
             &IRect::from_xywh(clip_w, clip_h, clip_w, clip_h),
             true,
+            true,
         ),
         Clip::new(
             &img,
             &IRect::from_xywh(clip_w * 2, clip_h, clip_w, clip_h),
+            true,
             true,
         ),
         Clip::new(
             &img,
             &IRect::from_xywh(clip_w * 3, clip_h, clip_w, clip_h),
             true,
+            true,
         ),
         Clip::new(
             &img,
             &IRect::from_xywh(clip_w * 4, clip_h, clip_w, clip_h),
+            true,
             true,
         ),
         Clip::new(
             &img,
             &IRect::from_xywh(clip_w * 5, clip_h, clip_w, clip_h),
             true,
+            true,
         ),
         Clip::new(
             &img,
             &IRect::from_xywh(clip_w * 6, clip_h, clip_w, clip_h),
             true,
-        ),
-        Clip::new(&img, &IRect::from_xywh(0, clip_h, clip_w * 2, clip_h), true),
-        Clip::new(
-            &img,
-            &IRect::from_xywh(clip_w, clip_h, clip_w * 2, clip_h),
             true,
         ),
     ];

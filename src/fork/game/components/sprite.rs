@@ -1,13 +1,12 @@
-use image::DynamicImage;
-use image::GenericImageView;
+use super::animate::Animate;
+use image::{DynamicImage, GenericImageView, Rgba};
 use nphysics2d::math::Isometry;
-
 use skulpin::skia_safe::{
     AlphaType, Canvas, ColorInfo, ColorSpace, ColorType, Data, IRect, ISize, Image, ImageInfo,
 };
 use std::collections::HashMap;
 
-type DrawFunction = fn(&mut Canvas, &Isometry<f32>, &SpriteSheet, u32, u32) -> ();
+type DrawFunction = fn(&mut Canvas, &Isometry<f32>, &SpriteSheet, &Animate) -> ();
 
 pub struct Sprite {
     pub draw_fn: DrawFunction,
@@ -31,38 +30,67 @@ impl SpriteSheet {
 }
 
 impl SpriteSheet {
-    pub fn get_image(&self, key: &str, it: usize, orientation: ClipOrientation) -> &DynamicImage {
-        self.clips.get(key).unwrap()[it].get(orientation)
+    #[inline]
+    pub fn get_clip(&self, key: &str, it: usize) -> &Clip {
+        &self.clips.get(key).unwrap()[it]
     }
+
+    // pub fn get_image(&self, key: &str, it: usize, orientation: ClipOrientation) -> &DynamicImage {
+    //     self.get_clip(key, it).get(orientation)
+    // }
 }
 
 #[derive(Clone)]
 pub struct Clip {
     original: DynamicImage,
     flipped: Option<DynamicImage>,
+    pub width_over_height: f32,
 }
 
 impl Clip {
-    pub fn new(source: &DynamicImage, rect: &IRect, is_flipped: bool) -> Self {
-        let cropped = source.crop_imm(
+    pub fn new(source: &DynamicImage, rect: &IRect, is_flipped: bool, squeeze: bool) -> Self {
+        let mut cropped = source.crop_imm(
             rect.x() as u32,
             rect.y() as u32,
             rect.width() as u32,
             rect.height() as u32,
         );
+
+        if squeeze {
+            Clip::squeeze(&mut cropped);
+        }
+
         let original = cropped.flipv();
         let flipped = if is_flipped {
             Some(original.fliph())
         } else {
             None
         };
-        Self { original, flipped }
+        let width_over_height = original.width() as f32 / original.height() as f32;
+        Self {
+            original,
+            flipped,
+            width_over_height,
+        }
     }
 
     pub fn get(&self, orientation: ClipOrientation) -> &DynamicImage {
         match orientation {
             ClipOrientation::Original => &self.original,
             ClipOrientation::Flipped => self.flipped.as_ref().unwrap(),
+        }
+    }
+
+    fn squeeze(source: &mut DynamicImage) {
+        for _ in 0..4 {
+            let rgba_img = source.as_rgba8().unwrap();
+            for (i, mut row) in rgba_img.enumerate_rows() {
+                if row.any(|p| p.2 != &Rgba::from([0, 0, 0, 0])) {
+                    *source = source.crop_imm(0, i, source.width(), source.height() - i);
+                    break;
+                }
+            }
+            *source = source.rotate90();
         }
     }
 }

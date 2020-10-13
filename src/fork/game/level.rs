@@ -1,5 +1,4 @@
 use super::components::animate::Animate;
-
 use super::components::sprite::Sprite;
 use super::entities::character;
 use super::physics::Physics;
@@ -77,6 +76,8 @@ impl Level {
         display_root.push("src/fork/res/adventurer-Sheet.png");
         let source_path = display_root.to_str().unwrap().to_string();
         let source = character::source(source_path);
+        let clip = source.get_clip("idle", 0);
+        let ratio = clip.width_over_height;
         let sprite = Sprite::new(character::draw, source);
         let animate = Animate::new(0, character::delta, character::animate);
         // Build the rigid body.
@@ -85,10 +86,7 @@ impl Level {
         // Insert the rigid body to the body set.
         let rigid_body_handle = physics.bodies.insert(rigid_body);
 
-        // let _character_image = &source.get_image("idle", 0, ClipOrientation::Original);
-
-        let box_shape_handle =
-            ShapeHandle::new(Cuboid::new(Vector2::new(BALL_RADIUS, BALL_RADIUS)));
+        let box_shape_handle = ShapeHandle::new(Cuboid::new(Vector2::new(ratio, 0.5)));
 
         // Build the collider.
         let box_collider = ColliderDesc::new(box_shape_handle)
