@@ -4,7 +4,8 @@ use image::GenericImageView;
 use nphysics2d::math::Isometry;
 use num_traits::FromPrimitive;
 use skulpin::skia_safe::{colors, Canvas, IRect, Paint, Rect};
-
+use skulpin::winit::event::ElementState;
+use skulpin::winit::event::VirtualKeyCode as Keycode;
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone)]
@@ -227,4 +228,20 @@ pub fn source(source_path: String) -> SpriteSheet {
     clips.insert("running".to_string(), running_clips);
 
     SpriteSheet::new(clips)
+}
+
+pub fn process(
+    keycode: Option<Keycode>,
+    key_state: &ElementState,
+    controlled_character: &mut Animate,
+) {
+    match (keycode, key_state) {
+        (Some(_), ElementState::Released) => {
+            controlled_character.delta(CharacterInput::Interrupt as u32);
+            controlled_character.ticks = 0;
+        }
+        (Some(Keycode::Left), _) => controlled_character.delta(CharacterInput::Left as u32),
+        (Some(Keycode::Right), _) => controlled_character.delta(CharacterInput::Right as u32),
+        _ => {}
+    }
 }

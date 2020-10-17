@@ -1,18 +1,25 @@
 use super::super::entities::character::CharacterInput;
 use super::animate::Animate;
+use skulpin::winit::event::ElementState;
 use skulpin::winit::event::VirtualKeyCode as Keycode;
-pub struct MovementInput {}
 
-impl MovementInput {
-    pub fn process(keycode: Option<Keycode>, controlled_character: &mut Animate) {
-        match keycode.unwrap() {
-            Keycode::Left => controlled_character.delta(CharacterInput::Left as u32),
-            Keycode::Right => controlled_character.delta(CharacterInput::Right as u32),
-            _ => {}
-        }
+type ProcessFunction = fn(Option<Keycode>, &ElementState, &mut Animate);
+
+pub struct KeyInputHandler {
+    process_fn: ProcessFunction,
+}
+
+impl KeyInputHandler {
+    pub fn new(process_fn: ProcessFunction) -> Self {
+        Self { process_fn }
     }
-    pub fn interrupt(_keycode: Option<Keycode>, controlled_character: &mut Animate) {
-        controlled_character.delta(CharacterInput::Interrupt as u32);
-        controlled_character.ticks = 0;
+
+    pub fn process(
+        &self,
+        keycode: Option<Keycode>,
+        key_state: &ElementState,
+        controlled_character: &mut Animate,
+    ) {
+        (self.process_fn)(keycode, key_state, controlled_character);
     }
 }

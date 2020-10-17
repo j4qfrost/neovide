@@ -1,4 +1,5 @@
 use super::components::animate::Animate;
+use super::components::input::KeyInputHandler;
 use super::components::sprite::Sprite;
 use super::entities::character;
 use super::physics::Physics;
@@ -96,6 +97,8 @@ impl Level {
         // Insert the collider to the body set.
         physics.colliders.insert(box_collider);
 
-        world.push((rigid_body_handle, animate, sprite))
+        let key_input_handler = KeyInputHandler::new(character::process);
+
+        world.push((rigid_body_handle, key_input_handler, animate, sprite))
     }
 }

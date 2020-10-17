@@ -11,7 +11,7 @@ use super::python::Python;
 pub mod components;
 pub mod entities;
 use components::animate::Animate;
-use components::input::MovementInput;
+use components::input::KeyInputHandler;
 use skulpin::winit::event::ElementState;
 
 pub struct Game {
@@ -61,13 +61,10 @@ impl Game {
 impl Game {
     pub fn send(&mut self, keycode: Option<Keycode>, key_state: ElementState) {
         // construct a query from a "view tuple"
-        let mut query = <&mut Animate>::query();
-        if let Ok(animate) = query.get_mut(&mut self.world, self.character_handle) {
-            if key_state == ElementState::Pressed {
-                MovementInput::process(keycode, animate);
-            } else {
-                MovementInput::interrupt(keycode, animate);
-            }
+        let mut query = <(&KeyInputHandler, &mut Animate)>::query();
+        if let Ok((input_handler, animate)) = query.get_mut(&mut self.world, self.character_handle)
+        {
+            input_handler.process(keycode, &key_state, animate);
         }
     }
 }
