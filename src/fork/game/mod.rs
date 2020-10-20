@@ -20,7 +20,6 @@ pub struct Game {
     pub resources: Resources,
     pub nsteps: usize,
     pub python: Python,
-    character_handle: Entity,
 }
 
 impl Default for Game {
@@ -40,7 +39,7 @@ impl Default for Game {
         python.init();
 
         let level = Level::new();
-        let character_handle = level.init(&mut world, &mut resources);
+        level.init(&mut world, &mut resources);
 
         Self {
             world,
@@ -48,7 +47,6 @@ impl Default for Game {
             resources,
             nsteps: 3,
             python,
-            character_handle,
         }
     }
 }
@@ -63,8 +61,7 @@ impl Game {
     pub fn send(&mut self, keycode: Option<Keycode>, key_state: ElementState) {
         // construct a query from a "view tuple"
         let mut query = <(&KeyInputHandler, &mut Animate)>::query();
-        if let Ok((input_handler, animate)) = query.get_mut(&mut self.world, self.character_handle)
-        {
+        for (input_handler, animate) in query.iter_mut(&mut self.world) {
             input_handler.process(keycode, &key_state, animate);
         }
     }

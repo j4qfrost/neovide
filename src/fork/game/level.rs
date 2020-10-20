@@ -2,7 +2,7 @@ use super::components::animate::Animate;
 use super::components::input::KeyInputHandler;
 use super::components::sprite::Sprite;
 use super::entities::character;
-use legion::{Entity, Resources, World};
+use legion::{Resources, World};
 use nalgebra::Vector2;
 use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
 use nphysics2d::object::{
@@ -26,7 +26,7 @@ impl Level {
         }
     }
 
-    pub fn init(&self, world: &mut World, resources: &mut Resources) -> Entity {
+    pub fn init(&self, world: &mut World, resources: &mut Resources) {
         println!("Loading level {:?}", self.name);
         // A rectangle that the balls will fall on
         let ground_shape = ShapeHandle::new(Cuboid::new(Vector2::new(
@@ -107,6 +107,6 @@ impl Level {
 
         let key_input_handler = KeyInputHandler::new(character::process);
 
-        world.push((rigid_body_handle, key_input_handler, animate, sprite))
+        world.push((rigid_body_handle, key_input_handler, animate, sprite));
     }
 }
