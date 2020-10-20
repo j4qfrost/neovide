@@ -1080,7 +1080,7 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 [[package]]
 name = "fork-the-game"
 version = "0.1.0"
-source = "git+https://github.com/j4qfrost/fork-the-game#723b7321559a5e77b27056a4c33a850f4112b9a8"
+source = "git+https://github.com/j4qfrost/fork-the-game#88e02b3ab9033238fd2d3954bca627f8f2779c8b"
 dependencies = [
  "futures 0.3.5",
  "image",
