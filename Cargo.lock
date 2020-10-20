@@ -101,7 +101,7 @@ checksum = "0609c78bd572f4edc74310dfb63a01f5609d53fa8b4dd7c4d98aef3b3e8d72d1"
 dependencies = [
  "proc-macro-hack",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -135,6 +135,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ash-window"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "905c4ca25f752e7ab3c3e8f2882625f876e4c3ea5feffbc83f81d697e043afd6"
+dependencies = [
+ "ash",
+ "raw-window-handle",
+ "raw-window-metal",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -142,7 +153,7 @@ checksum = "687c230d85c0a52504709705fc8a53e4a692b83a2184f03dae73e38e1e93a783"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -336,17 +347,6 @@ name = "bytes"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
-
-[[package]]
-name = "cache-macro"
-version = "0.4.1"
-source = "git+https://github.com/j4qfrost/cache-macro.git#e69ef9687cb57590892ebc49d7e245ccfe631711"
-dependencies = [
- "lazy_static",
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "syn 0.15.44",
-]
 
 [[package]]
 name = "calloop"
@@ -728,7 +728,7 @@ checksum = "cb582b60359da160a9477ee80f15c8d784c477e69c217ef2cdd4169c24ea380f"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -739,7 +739,7 @@ checksum = "71f31892cd5c62e414316f2963c5689242c43d8e7bbcaaeca97e5e28c95d91d9"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -750,7 +750,7 @@ checksum = "1dcfabdab475c16a93d669dddfc393027803e347d09663f524447f642fbb84ba"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -1078,6 +1078,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
+name = "fork-the-game"
+version = "0.1.0"
+source = "git+https://github.com/j4qfrost/fork-the-game#723b7321559a5e77b27056a4c33a850f4112b9a8"
+dependencies = [
+ "futures 0.3.5",
+ "image",
+ "legion",
+ "log",
+ "nalgebra",
+ "ncollide2d",
+ "neovide-plugin",
+ "nphysics2d",
+ "num-traits",
+ "rustpython-compiler",
+ "rustpython-vm",
+ "skulpin",
+ "walkdir",
+]
+
+[[package]]
 name = "fragile"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1183,7 +1203,7 @@ dependencies = [
  "proc-macro-hack",
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -1424,7 +1444,7 @@ dependencies = [
  "pmutil",
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -1556,7 +1576,7 @@ checksum = "c24e58060e656eae6b87f83f14f41080656a930fba7ef299122e40eb8ccd307f"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
  "thiserror",
 ]
 
@@ -1731,21 +1751,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "metal"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e198a0ee42bdbe9ef2c09d0b9426f3b2b47d90d93a4a9b0395c4cea605e92dc0"
-dependencies = [
- "bitflags",
- "block",
- "cocoa",
- "core-graphics 0.19.2",
- "foreign-types",
- "log",
- "objc",
-]
-
-[[package]]
 name = "miniz_oxide"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1864,7 +1869,7 @@ dependencies = [
  "cfg-if",
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -1958,26 +1963,18 @@ dependencies = [
  "euclid",
  "flexi_logger",
  "font-kit",
- "futures 0.3.5",
+ "fork-the-game",
  "image",
  "lazy_static",
- "legion",
  "log",
  "lru",
  "mockall",
- "nalgebra",
- "ncollide2d",
- "nier",
- "nier_macros",
- "nphysics2d",
- "num-traits",
+ "neovide-plugin",
  "nvim-rs",
  "parking_lot 0.10.2",
  "rand",
  "rmpv",
  "rust-embed",
- "rustpython-compiler",
- "rustpython-vm",
  "sdl2-sys",
  "skribo",
  "skulpin",
@@ -1986,6 +1983,14 @@ dependencies = [
  "which 4.0.2",
  "winapi 0.3.9",
  "winres",
+]
+
+[[package]]
+name = "neovide-plugin"
+version = "0.1.0"
+source = "git+https://github.com/j4qfrost/neovide-plugin#34f7c66ca2afdf83e7575ac52256c0536e69134f"
+dependencies = [
+ "skulpin",
 ]
 
 [[package]]
@@ -2004,26 +2009,6 @@ name = "new_debug_unreachable"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
-
-[[package]]
-name = "nier"
-version = "0.1.0"
-source = "git+https://github.com/j4qfrost/nier-rs#ee748409ce067ca576761415ec68daeba2239638"
-
-[[package]]
-name = "nier_macros"
-version = "0.1.0"
-source = "git+https://github.com/j4qfrost/nier-rs#ee748409ce067ca576761415ec68daeba2239638"
-dependencies = [
- "cache-macro",
- "lazy_static",
- "lru",
- "nier",
- "quote 1.0.7",
- "ron",
- "serde",
- "syn 1.0.41",
-]
 
 [[package]]
 name = "nix"
@@ -2202,7 +2187,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -2226,16 +2211,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "915b1b472bc21c53464d6c8461c9d3af805ba1ef837e1cac254428f4a77177b1"
 dependencies = [
  "malloc_buf",
- "objc_exception",
-]
-
-[[package]]
-name = "objc_exception"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad970fb455818ad6cba4c122ad012fae53ae8b4795f86378bce65e4f6bab2ca4"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -2420,7 +2395,7 @@ checksum = "2c0e815c3ee9a031fdf5af21c10aa17c573c9c6a566328d99e3936c34e36461f"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -2449,7 +2424,7 @@ checksum = "3894e5d549cccbe44afecf72922f277f603cd4bb0219c8342631ef18fffbe004"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -2628,6 +2603,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "raw-window-metal"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b0f43bdc87adef4ce827b07775c9e59716b52f369696e7fb4ec7c4acb4e20b1"
+dependencies = [
+ "cocoa",
+ "core-graphics 0.19.2",
+ "objc",
+ "raw-window-handle",
+]
+
+[[package]]
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2732,17 +2719,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ron"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8a58080b7bb83b2ea28c3b7a9a994fd5e310330b7c8ca5258d99b98128ecfe4"
-dependencies = [
- "base64",
- "bitflags",
- "serde",
-]
-
-[[package]]
 name = "rust-argon2"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2773,7 +2749,7 @@ checksum = "7903c2cf599db8f310b392332f38367ca4acc84420fa1aee3536299f433c10d5"
 dependencies = [
  "quote 1.0.7",
  "rust-embed-utils",
- "syn 1.0.41",
+ "syn",
  "walkdir",
 ]
 
@@ -2868,7 +2844,7 @@ dependencies = [
  "quote 1.0.7",
  "rustpython-bytecode",
  "rustpython-compiler",
- "syn 1.0.41",
+ "syn",
  "syn-ext",
  "textwrap 0.12.1",
 ]
@@ -3060,6 +3036,7 @@ dependencies = [
  "bitflags",
  "lazy_static",
  "libc",
+ "raw-window-handle",
  "sdl2-sys",
 ]
 
@@ -3110,7 +3087,7 @@ checksum = "f630a6370fd8e457873b4bd2ffdae75408bc291ba72be773772a4c2a065d9ae8"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3266,7 +3243,7 @@ dependencies = [
 [[package]]
 name = "skulpin"
 version = "0.10.0"
-source = "git+https://github.com/aclysma/skulpin#fd476242e176383faf0db127cde0408d0b20cfd0"
+source = "git+https://github.com/aclysma/skulpin#347daae91838693fb7880ea59dbcaade360f8d2d"
 dependencies = [
  "log",
  "skulpin-app-winit",
@@ -3278,7 +3255,7 @@ dependencies = [
 [[package]]
 name = "skulpin-app-winit"
 version = "0.4.0"
-source = "git+https://github.com/aclysma/skulpin#fd476242e176383faf0db127cde0408d0b20cfd0"
+source = "git+https://github.com/aclysma/skulpin#347daae91838693fb7880ea59dbcaade360f8d2d"
 dependencies = [
  "log",
  "skulpin-renderer",
@@ -3288,7 +3265,7 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer"
 version = "0.4.0"
-source = "git+https://github.com/aclysma/skulpin#fd476242e176383faf0db127cde0408d0b20cfd0"
+source = "git+https://github.com/aclysma/skulpin#347daae91838693fb7880ea59dbcaade360f8d2d"
 dependencies = [
  "ash",
  "log",
@@ -3299,9 +3276,11 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer-sdl2"
 version = "0.4.0"
-source = "git+https://github.com/aclysma/skulpin#fd476242e176383faf0db127cde0408d0b20cfd0"
+source = "git+https://github.com/aclysma/skulpin#347daae91838693fb7880ea59dbcaade360f8d2d"
 dependencies = [
+ "ash-window",
  "log",
+ "raw-window-handle",
  "sdl2",
  "skulpin-renderer",
 ]
@@ -3309,15 +3288,12 @@ dependencies = [
 [[package]]
 name = "skulpin-renderer-winit"
 version = "0.4.0"
-source = "git+https://github.com/aclysma/skulpin#fd476242e176383faf0db127cde0408d0b20cfd0"
+source = "git+https://github.com/aclysma/skulpin#347daae91838693fb7880ea59dbcaade360f8d2d"
 dependencies = [
- "cocoa",
+ "ash-window",
  "log",
- "metal",
- "objc",
  "raw-window-handle",
  "skulpin-renderer",
- "winapi 0.3.9",
  "winit",
 ]
 
@@ -3417,7 +3393,7 @@ dependencies = [
  "quote 1.0.7",
  "serde",
  "serde_derive",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3433,7 +3409,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sha1",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3475,17 +3451,6 @@ checksum = "2d67a5a62ba6e01cb2192ff309324cb4875d0c451d55fe2319433abe7a05a8ee"
 
 [[package]]
 name = "syn"
-version = "0.15.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca4b3b69a77cbe1ffc9e198781b7acb0c7365a883670e8f1c1bc66fba79a5c5"
-dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "unicode-xid 0.1.0",
-]
-
-[[package]]
-name = "syn"
 version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6690e3e9f692504b941dc6c3b188fd28df054f7fb8469ab40680df52fdcc842b"
@@ -3501,7 +3466,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da910e9ec6f88d3f591893025a3040fe2659b7f7ea4eacce5469b7ebe5287339"
 dependencies = [
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3571,7 +3536,7 @@ checksum = "bd80fc12f73063ac132ac92aceea36734f04a1d93c1240c6944e23a3b8841793"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3659,7 +3624,7 @@ checksum = "f0c3acc6aa564495a0f2e1d59fab677cd7f81a19994cfc7f3ad0e64301560389"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
 ]
 
 [[package]]
@@ -3970,7 +3935,7 @@ dependencies = [
  "log",
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
  "wasm-bindgen-shared",
 ]
 
@@ -3992,7 +3957,7 @@ checksum = "f249f06ef7ee334cc3b8ff031bfc11ec99d00f34d86da7498396dc1e3b1498fe"
 dependencies = [
  "proc-macro2 1.0.21",
  "quote 1.0.7",
- "syn 1.0.41",
+ "syn",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]

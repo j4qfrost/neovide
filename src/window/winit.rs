@@ -1,3 +1,4 @@
+use neovide_plugin::*;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
@@ -21,7 +22,7 @@ use crate::renderer::Renderer;
 use crate::settings::*;
 use crate::INITIAL_DIMENSIONS;
 
-use crate::fork::Fork;
+use fork_the_game::Fork;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -208,6 +209,13 @@ impl Default for NeovideHandle {
 }
 
 impl WindowHandle for NeovideHandle {
+    fn init() -> Self
+    where
+        Self: Sized,
+    {
+        NeovideHandle::default()
+    }
+
     fn window(&mut self) -> Window {
         self.window.take().unwrap()
     }
@@ -396,7 +404,7 @@ pub fn ui_loop() {
                 }
             }
             Event::UserEvent(NeovideEvent::SwitchHandle(window_id)) => {
-                let mut handle = Fork::default();
+                let mut handle = Fork::init();
                 let mut old_handle = window_manager.windows.remove(&window_id).unwrap();
                 handle.set_window(old_handle.window());
                 handle.save_handle(old_handle);

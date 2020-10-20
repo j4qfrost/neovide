@@ -1,32 +1,14 @@
 use log::info;
+use neovide_plugin::*;
 use skulpin::winit::event::WindowEvent;
 use skulpin::winit::event_loop::{
     ControlFlow, EventLoopClosed, EventLoopProxy, EventLoopWindowTarget,
 };
 use skulpin::winit::window::{Icon, Window, WindowBuilder, WindowId};
 use skulpin::{
-    winit::dpi::LogicalSize, CoordinateSystem, PresentMode, Renderer as SkulpinRenderer,
-    RendererBuilder, WinitWindow,
+    CoordinateSystem, PresentMode, Renderer as SkulpinRenderer, RendererBuilder, WinitWindow,
 };
 use std::collections::HashMap;
-
-#[cfg(feature = "winit")]
-pub trait NeovideEventProcessor {
-    fn process_event(
-        &mut self,
-        e: WindowEvent,
-        proxy: &EventLoopProxy<NeovideEvent>,
-    ) -> Option<ControlFlow>;
-}
-
-pub trait WindowHandle: NeovideEventProcessor {
-    fn window(&mut self) -> Window;
-    fn set_window(&mut self, window: Window);
-    fn logical_size(&self) -> LogicalSize<u32>;
-    fn update(&mut self) -> bool;
-    fn should_draw(&self) -> bool;
-    fn draw(&mut self, skulpin_renderer: &mut SkulpinRenderer) -> bool;
-}
 
 pub struct WindowManager {
     pub windows: HashMap<WindowId, Box<dyn WindowHandle>>,
@@ -110,22 +92,5 @@ impl WindowManager {
             }
         }
         true
-    }
-}
-
-pub trait NoopEvent {
-    fn noop() -> Self;
-}
-
-#[derive(Debug)]
-pub enum NeovideEvent {
-    // Pause(WindowId),
-    SwitchHandle(WindowId),
-    Noop,
-}
-
-impl NoopEvent for NeovideEvent {
-    fn noop() -> Self {
-        NeovideEvent::Noop
     }
 }

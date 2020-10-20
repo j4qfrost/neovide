@@ -6,8 +6,6 @@ mod settings;
 mod bridge;
 mod editor;
 mod error_handling;
-#[cfg(feature = "winit")]
-mod fork;
 mod redraw_scheduler;
 mod renderer;
 mod window;
@@ -32,7 +30,7 @@ fn main() {
     if let Err(err) = window_geometry() {
         eprintln!("{}", err);
         process::exit(1);
-    };
+    }
 
     #[cfg(target_os = "macos")]
     {
