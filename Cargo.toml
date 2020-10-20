@@ -10,8 +10,8 @@ description = "A simple GUI for Neovim."
 default = ["sdl2"]
 embed-fonts = []
 sdl2 = ["skulpin/skulpin_sdl2"]
-winit = ["skulpin/skulpin_winit"]
-ftg = ["winit"]
+winit = ["skulpin/skulpin_winit", "neovide-plugin"]
+ftg = ["winit", "fork-the-game"]
 bounds = ["fork-the-game/bounds"]
 
 [dependencies]
@@ -38,8 +38,8 @@ which = "4"
 dirs = "2"
 rand = "0.7"
 
-neovide-plugin = { git = "https://github.com/j4qfrost/neovide-plugin" }
-fork-the-game = { git =  "https://github.com/j4qfrost/fork-the-game" }
+neovide-plugin = { git = "https://github.com/j4qfrost/neovide-plugin", optional = true }
+fork-the-game = { git =  "https://github.com/j4qfrost/fork-the-game", optional = true }
 
 [dev-dependencies]
 mockall = "0.7.0"
