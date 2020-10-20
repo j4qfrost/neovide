@@ -36,10 +36,10 @@ impl Level {
 
         let mut bodies = resources
             .get_mut::<DefaultBodySet<f32>>()
-            .expect(&format!("{:?}- Bodyset", self.name));
+            .unwrap_or_else(|| panic!("{:?}- Bodyset", self.name));
         let mut colliders = resources
             .get_mut::<DefaultColliderSet<f32>>()
-            .expect(&format!("{:?}- Colliderset", self.name));
+            .unwrap_or_else(|| panic!("{:?}- Colliderset", self.name));
 
         // Build a static ground body and add it to the body set.
         let ground_body_handle = bodies.insert(Ground::new());
