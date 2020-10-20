@@ -2,11 +2,12 @@ use super::components::animate::Animate;
 use super::components::input::KeyInputHandler;
 use super::components::sprite::Sprite;
 use super::entities::character;
-use super::physics::Physics;
-use legion::{Entity, World};
+use legion::{Entity, Resources, World};
 use nalgebra::Vector2;
 use ncollide2d::shape::{Ball, Cuboid, ShapeHandle};
-use nphysics2d::object::{BodyPartHandle, ColliderDesc, Ground, RigidBodyDesc};
+use nphysics2d::object::{
+    BodyPartHandle, ColliderDesc, DefaultBodySet, DefaultColliderSet, Ground, RigidBodyDesc,
+};
 use std::path::PathBuf;
 
 pub struct Level {
@@ -25,7 +26,7 @@ impl Level {
         }
     }
 
-    pub fn init(&self, world: &mut World, physics: &mut Physics) -> Entity {
+    pub fn init(&self, world: &mut World, resources: &mut Resources) -> Entity {
         println!("Loading level {:?}", self.name);
         // A rectangle that the balls will fall on
         let ground_shape = ShapeHandle::new(Cuboid::new(Vector2::new(
@@ -33,8 +34,15 @@ impl Level {
             GROUND_THICKNESS,
         )));
 
+        let mut bodies = resources
+            .get_mut::<DefaultBodySet<f32>>()
+            .expect(&format!("{:?}- Bodyset", self.name));
+        let mut colliders = resources
+            .get_mut::<DefaultColliderSet<f32>>()
+            .expect(&format!("{:?}- Colliderset", self.name));
+
         // Build a static ground body and add it to the body set.
-        let ground_body_handle = physics.bodies.insert(Ground::new());
+        let ground_body_handle = bodies.insert(Ground::new());
 
         // Build the collider.
         let ground_collider = ColliderDesc::new(ground_shape)
@@ -42,7 +50,7 @@ impl Level {
             .build(BodyPartHandle(ground_body_handle, 0));
 
         // Add the collider to the collider set.
-        physics.colliders.insert(ground_collider);
+        colliders.insert(ground_collider);
 
         let ball_shape_handle = ShapeHandle::new(Ball::new(BALL_RADIUS));
 
@@ -60,7 +68,7 @@ impl Level {
                 let rigid_body = RigidBodyDesc::new().translation(Vector2::new(x, y)).build();
 
                 // Insert the rigid body to the body set.
-                let rigid_body_handle = physics.bodies.insert(rigid_body);
+                let rigid_body_handle = bodies.insert(rigid_body);
 
                 // Build the collider.
                 let ball_collider = ColliderDesc::new(ball_shape_handle.clone())
@@ -68,7 +76,7 @@ impl Level {
                     .build(BodyPartHandle(rigid_body_handle, 0));
 
                 // Insert the collider to the body set.
-                physics.colliders.insert(ball_collider);
+                colliders.insert(ball_collider);
             }
         }
 
@@ -85,7 +93,7 @@ impl Level {
         let rigid_body = RigidBodyDesc::new().translation(Vector2::y()).build();
 
         // Insert the rigid body to the body set.
-        let rigid_body_handle = physics.bodies.insert(rigid_body);
+        let rigid_body_handle = bodies.insert(rigid_body);
 
         let box_shape_handle = ShapeHandle::new(Cuboid::new(Vector2::new(ratio, 0.5)));
 
@@ -95,7 +103,7 @@ impl Level {
             .build(BodyPartHandle(rigid_body_handle, 0));
 
         // Insert the collider to the body set.
-        physics.colliders.insert(box_collider);
+        colliders.insert(box_collider);
 
         let key_input_handler = KeyInputHandler::new(character::process);
 

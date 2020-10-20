@@ -87,9 +87,6 @@ impl WindowHandle for Fork {
     }
 
     fn update(&mut self) -> bool {
-        for _ in 1..self.game.nsteps {
-            self.game.physics.step();
-        }
         self.game
             .schedule
             .execute(&mut self.game.world, &mut self.game.resources);
@@ -107,7 +104,9 @@ impl WindowHandle for Fork {
             let window = WinitWindow::new(&self.window.as_ref().unwrap());
             let error = skulpin_renderer
                 .draw(&window, |canvas, coordinate_system_helper| {
-                    renderer.draw(canvas, &coordinate_system_helper, game);
+                    for _ in 0..3 {
+                        renderer.draw(canvas, &coordinate_system_helper, game);
+                    }
                 })
                 .is_err();
             if error {

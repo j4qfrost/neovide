@@ -18,7 +18,6 @@ pub struct Game {
     pub world: World,
     pub schedule: Schedule,
     pub resources: Resources,
-    pub physics: Physics,
     pub nsteps: usize,
     pub python: Python,
     character_handle: Entity,
@@ -28,23 +27,25 @@ impl Default for Game {
     fn default() -> Self {
         let mut world = World::default();
         let schedule = Schedule::builder()
+            .add_system(systems::physics_system())
             .add_system(systems::animate_entities_system())
             .build();
         let mut resources = Resources::default();
         resources.insert(DeltaTime::default());
 
-        let mut physics = Physics::new();
+        let physics = Physics::new(&mut resources);
+        resources.insert(physics);
+
         let mut python = Python::default();
         python.init();
 
         let level = Level::new();
-        let character_handle = level.init(&mut world, &mut physics);
+        let character_handle = level.init(&mut world, &mut resources);
 
         Self {
             world,
             schedule,
             resources,
-            physics,
             nsteps: 3,
             python,
             character_handle,

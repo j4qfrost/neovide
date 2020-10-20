@@ -1,4 +1,3 @@
-use super::super::entities::character::CharacterInput;
 use super::animate::Animate;
 use skulpin::winit::event::ElementState;
 use skulpin::winit::event::VirtualKeyCode as Keycode;

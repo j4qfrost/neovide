@@ -2,7 +2,7 @@ use super::game::components::animate::Animate;
 use super::game::components::sprite::Sprite;
 use super::game::*;
 use legion::IntoQuery;
-use nphysics2d::object::DefaultBodyHandle;
+use nphysics2d::object::{DefaultBodyHandle, DefaultBodySet};
 use skulpin::skia_safe::{matrix, paint, Canvas, Color, Color4f, Paint, Rect};
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::CoordinateSystemHelper;
@@ -58,7 +58,8 @@ impl Renderer {
 
         let mut query = <(&DefaultBodyHandle, &Animate, &Sprite)>::query();
         for (handle, animate, sprite) in query.iter(&game.world) {
-            let body = game.physics.bodies.rigid_body(*handle).unwrap();
+            let body_set = game.resources.get::<DefaultBodySet<f32>>().unwrap();
+            let body = body_set.rigid_body(*handle).unwrap();
             (sprite.draw_fn)(canvas, body.position(), &sprite.source, &animate);
         }
         canvas.draw_rect(

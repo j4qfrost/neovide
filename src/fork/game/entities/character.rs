@@ -1,7 +1,8 @@
 use super::super::components::animate::*;
 use super::super::components::sprite::*;
 use image::GenericImageView;
-use nphysics2d::math::Isometry;
+use nphysics2d::math::{Isometry, Velocity};
+use nphysics2d::object::{DefaultBodyHandle, DefaultBodySet};
 use num_traits::FromPrimitive;
 use skulpin::skia_safe::{colors, Canvas, IRect, Paint, Rect};
 use skulpin::winit::event::ElementState;
@@ -138,12 +139,20 @@ pub fn delta(state: u32, input: u32) -> u32 {
     }
 }
 
-pub fn animate(anim: &mut Animate) {
-    let states = match anim.state() {
-        CharacterState::Idle => 4,
-        CharacterState::RunningLeft | CharacterState::RunningRight => 6,
+pub fn animate(
+    anim: &mut Animate,
+    body_handle: &DefaultBodyHandle,
+    bodies: &mut DefaultBodySet<f32>,
+) {
+    let speed = 2.0;
+    let body = bodies.rigid_body_mut(*body_handle).unwrap();
+    let (num_states, velocity) = match anim.state() {
+        CharacterState::Idle => (4, Velocity::<f32>::linear(0.0, 0.0)),
+        CharacterState::RunningLeft => (6, Velocity::<f32>::linear(-speed, 0.0)),
+        CharacterState::RunningRight => (6, Velocity::<f32>::linear(speed, 0.0)),
     };
-    anim.ticks = (anim.ticks + 1) % states;
+    body.set_velocity(velocity);
+    anim.ticks = (anim.ticks + 1) % num_states;
 }
 
 pub fn source(source_path: String) -> SpriteSheet {
