@@ -1090,8 +1090,10 @@ dependencies = [
  "neovide-plugin",
  "nphysics2d",
  "num-traits",
+ "ron",
  "rustpython-compiler",
  "rustpython-vm",
+ "serde",
  "skulpin",
  "walkdir",
 ]
@@ -2715,6 +2717,17 @@ checksum = "ee358f3c4be83ab373cd3e501dc04881034f1ae198e73b2d9edd617653ac4293"
 dependencies = [
  "num-traits",
  "rmp",
+]
+
+[[package]]
+name = "ron"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8a58080b7bb83b2ea28c3b7a9a994fd5e310330b7c8ca5258d99b98128ecfe4"
+dependencies = [
+ "base64",
+ "bitflags",
+ "serde",
 ]
 
 [[package]]
